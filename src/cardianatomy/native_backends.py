@@ -88,9 +88,11 @@ class NativeQCBackend:
         if path is None or not path.is_file():
             raise ValueError("Native geometry QC requires a local mesh artifact")
         inspection = inspect_mesh_file(path)
+        quality = parameters.get("minimum_shape_quality")
         qc = qc_from_inspection(
             inspection,
             require_watertight=bool(parameters.get("require_watertight", False)),
+            minimum_shape_quality=None if quality is None else float(quality),
         )
         report_path = workdir / "geometry-qc.json"
         report_path.write_text(
