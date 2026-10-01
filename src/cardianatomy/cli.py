@@ -75,6 +75,24 @@ def main() -> int:
     audit.add_argument("manifest")
     audit.add_argument("--allow-restricted", action="store_true")
 
+    cine = sub.add_parser(
+        "cine-phases",
+        help="Select ED/ES from a JSON chamber-volume curve",
+    )
+    cine.add_argument("volumes")
+
+    compose = sub.add_parser(
+        "compose-affines",
+        help="Compose JSON 4x4 affine matrices in application order",
+    )
+    compose.add_argument("matrices")
+
+    invert = sub.add_parser(
+        "invert-affine",
+        help="Invert one JSON 4x4 affine matrix",
+    )
+    invert.add_argument("matrix")
+
     args = parser.parse_args()
     api = AnatomyAPI(CardiAnatomyService())
 
@@ -136,5 +154,26 @@ def main() -> int:
         payload = _load_json(args.manifest)
         payload["allow_restricted"] = args.allow_restricted
         _write_json(api.manifest_audit(payload))
+        return 0
+    if args.command == "cine-phases":
+        _write_json(
+            api.cine_phases(
+                {"volumes_ml": _load_json(args.volumes)}
+            )
+        )
+        return 0
+    if args.command == "compose-affines":
+        _write_json(
+            api.transforms_compose(
+                {"matrices": _load_json(args.matrices)}
+            )
+        )
+        return 0
+    if args.command == "invert-affine":
+        _write_json(
+            api.transforms_invert(
+                {"matrix": _load_json(args.matrix)}
+            )
+        )
         return 0
     return 2
