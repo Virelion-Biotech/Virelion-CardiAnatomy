@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: cardianatomy-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   base:
     runs-on: ubuntu-latest
