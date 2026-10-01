@@ -27,12 +27,19 @@ def main() -> int:
     stale = []
     for filename, schema in SCHEMAS.items():
         path = root / filename
-        expected = payload(schema)
         if args.check:
-            if not path.exists() or path.read_text(encoding="utf-8") != expected:
+            if not path.exists():
+                stale.append(filename)
+                continue
+            try:
+                current = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                stale.append(filename)
+                continue
+            if current != schema:
                 stale.append(filename)
         else:
-            path.write_text(expected, encoding="utf-8")
+            path.write_text(payload(schema), encoding="utf-8")
     if stale:
         raise SystemExit("stale schemas: " + ", ".join(stale))
     return 0
