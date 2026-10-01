@@ -9,7 +9,12 @@ def _normalize(vectors: np.ndarray, label: str) -> np.ndarray:
     vectors = np.asarray(vectors, dtype=float)
     if vectors.ndim != 2 or vectors.shape[1] != 3:
         raise ValueError(f"{label} must have shape (N, 3)")
-    norms = np.linalg.norm(vectors, axis=1)
+    if not np.all(np.isfinite(vectors)):
+        raise ValueError(f"{label} contains non-finite vectors")
+    norms = np.hypot(
+        np.hypot(vectors[:, 0], vectors[:, 1]),
+        vectors[:, 2],
+    )
     if np.any(~np.isfinite(norms)) or np.any(norms <= 0):
         raise ValueError(f"{label} contains invalid vectors")
     return vectors / norms[:, None]
@@ -24,7 +29,8 @@ def orthonormal_local_frame(
     l_raw = np.asarray(longitudinal, dtype=float)
     if l_raw.shape != c.shape:
         raise ValueError("longitudinal must match circumferential shape")
-    longitudinal_axis = l_raw - np.sum(l_raw * c, axis=1)[:, None] * c
+    l_unit = _normalize(l_raw, "longitudinal")
+    longitudinal_axis = l_unit - np.sum(l_unit * c, axis=1)[:, None] * c
     longitudinal_axis = _normalize(longitudinal_axis, "longitudinal")
     t = _normalize(np.cross(c, longitudinal_axis), "transmural")
     longitudinal_axis = _normalize(np.cross(t, c), "longitudinal")
