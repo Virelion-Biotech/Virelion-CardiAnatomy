@@ -1,6 +1,6 @@
 [project]
 name = "virelion-cardianatomy"
-version = "0.3.0"
+version = "0.4.0"
 description = "Patient-specific cardiac anatomy, geometry, registration, microstructure, scar, and QC infrastructure for Virelion HeartTwin"
 requires-python = ">=3.10"
 license = {text = "AGPL-3.0-or-later"}
