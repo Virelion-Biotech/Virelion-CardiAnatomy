@@ -26,7 +26,9 @@ def scar_fractions(labels: np.ndarray) -> dict[str, float]:
     labels = np.asarray(labels)
     if labels.ndim != 1 or np.any(~np.isin(labels, [0, 1, 2])):
         raise ValueError("labels must contain only 0, 1, and 2")
-    total = max(len(labels), 1)
+    if len(labels) == 0:
+        raise ValueError("scar fractions require at least one label")
+    total = len(labels)
     return {
         "normal_fraction": float(np.sum(labels == 0) / total),
         "border_fraction": float(np.sum(labels == 1) / total),
