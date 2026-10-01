@@ -100,3 +100,27 @@ def test_motion_api_reports_cyclic_closure() -> None:
     )
     assert result["phase_count"] == 3
     assert result["cyclic_closure_error"]["max"] == 0.0
+
+
+def test_segmentation_validation_api() -> None:
+    result = AnatomyAPI().validation_segmentation(
+        {
+            "reference_labels": [1, 1, 0, 0],
+            "prediction_labels": [1, 0, 0, 0],
+        }
+    )
+    assert abs(result["metrics"]["1"]["dice"] - (2.0 / 3.0)) < 1e-12
+    assert result["validation_status"] == "reference_dependent"
+
+
+def test_point_validation_api() -> None:
+    result = AnatomyAPI().validation_points(
+        {
+            "reference_points": [[0, 0, 0], [1, 0, 0]],
+            "prediction_points": [[1, 0, 0], [2, 0, 0]],
+            "units": "mm",
+            "block_size": 1,
+        }
+    )
+    assert result["hausdorff"] == 1.0
+    assert result["units"] == "mm"
