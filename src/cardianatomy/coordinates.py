@@ -19,8 +19,12 @@ def apply_affine(points: np.ndarray, matrix: np.ndarray) -> np.ndarray:
         raise ValueError("points must have shape (N, 3)")
     if matrix.shape != (4, 4):
         raise ValueError("matrix must have shape (4, 4)")
+    if not np.all(np.isfinite(points)) or not np.all(np.isfinite(matrix)):
+        raise ValueError("points and matrix must contain only finite values")
     homogeneous = np.column_stack([points, np.ones(len(points), dtype=float)])
     transformed = homogeneous @ matrix.T
+    if not np.all(np.isfinite(transformed)):
+        raise OverflowError("affine transform produced non-finite coordinates")
     scale = transformed[:, 3:4]
     if np.any(np.isclose(scale, 0.0)):
         raise ValueError("affine produced invalid homogeneous coordinates")
