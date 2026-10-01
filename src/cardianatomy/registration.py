@@ -36,6 +36,13 @@ def estimate_rigid_transform(
     target_centroid = target.mean(axis=0)
     source_centered = source - source_centroid
     target_centered = target - target_centroid
+    source_rank = int(np.linalg.matrix_rank(source_centered))
+    target_rank = int(np.linalg.matrix_rank(target_centered))
+    if source_rank < 2 or target_rank < 2:
+        raise ValueError(
+            "Rigid registration requires at least three non-collinear landmarks "
+            "in both point sets"
+        )
 
     covariance = source_centered.T @ target_centered
     u, _, vt = np.linalg.svd(covariance)
@@ -67,6 +74,14 @@ def registration_residuals(
 ) -> np.ndarray:
     source = np.asarray(source_points, dtype=float)
     target = np.asarray(target_points, dtype=float)
-    if source.shape != target.shape:
-        raise ValueError("source_points and target_points must have the same shape")
+    if (
+        source.shape != target.shape
+        or source.ndim != 2
+        or source.shape[1] != 3
+    ):
+        raise ValueError(
+            "source_points and target_points must both have shape (N, 3)"
+        )
+    if not np.all(np.isfinite(source)) or not np.all(np.isfinite(target)):
+        raise ValueError("registration points must be finite")
     return np.linalg.norm(apply_affine(source, matrix) - target, axis=1)
