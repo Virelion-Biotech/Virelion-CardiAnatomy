@@ -52,8 +52,18 @@ class CardiAnatomyService:
             if backend is None or not backend.available():
                 raise BackendUnavailable(f"Anatomy backend unavailable: {request.backend}")
             bundle = backend.build(request)
+        identity_mismatches = []
         if bundle.subject_id != request.subject_id:
-            raise ReadinessError("Backend returned anatomy for a different subject")
+            identity_mismatches.append("subject_id")
+        if bundle.study_id != request.acquisition.study_id:
+            identity_mismatches.append("study_id")
+        if bundle.acquisition_id != request.acquisition.acquisition_id:
+            identity_mismatches.append("acquisition_id")
+        if identity_mismatches:
+            raise ReadinessError(
+                "Backend returned anatomy for a different request identity: "
+                + ", ".join(identity_mismatches)
+            )
         if not bundle.bundle_fingerprint:
             bundle.bundle_fingerprint = bundle_fingerprint(bundle)
         return bundle
