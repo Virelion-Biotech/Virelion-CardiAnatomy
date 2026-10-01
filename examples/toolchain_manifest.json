@@ -1,0 +1,29 @@
+{
+  "tools": [
+    {
+      "tool_id": "nnunet",
+      "version": "2.x",
+      "executable": "nnUNetv2_predict",
+      "configuration": {
+        "dataset": "100",
+        "configuration": "3d_fullres"
+      }
+    }
+  ],
+  "assets": [
+    {
+      "asset_id": "nnunet-weights-dataset100",
+      "kind": "model_weights",
+      "source": "local://models/Dataset100",
+      "version": "example",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "license_name": "REPLACE_WITH_ACTUAL_WEIGHT_TERMS",
+      "metadata": {
+        "note": "Replace this example digest and asset license before use."
+      }
+    }
+  ],
+  "environment": {
+    "CUDA_VISIBLE_DEVICES": "0"
+  }
+}
