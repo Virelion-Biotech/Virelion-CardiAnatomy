@@ -1,0 +1,14 @@
+{
+  "stages": ["segmentation", "contours", "surface_fit", "volume_mesh", "coordinates", "microstructure", "qc"],
+  "backends": {
+    "segmentation": "nnunet-external",
+    "contours": "biv-me-external",
+    "surface_fit": "biv-me-external",
+    "volume_mesh": "meshtool-external",
+    "coordinates": "uvc-external",
+    "microstructure": "ldrb-external",
+    "qc": "cardianatomy"
+  },
+  "stage_parameters": {},
+  "resume": true
+}
