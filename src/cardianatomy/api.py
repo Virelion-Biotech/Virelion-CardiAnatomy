@@ -159,7 +159,12 @@ class AnatomyAPI:
         return output
 
     def manifest_audit(self, payload: dict[str, Any]) -> dict[str, Any]:
-        manifest = ToolchainManifest.model_validate(payload)
+        manifest_payload = {
+            key: value
+            for key, value in payload.items()
+            if key != "allow_restricted"
+        }
+        manifest = ToolchainManifest.model_validate(manifest_payload)
         problems = audit_manifest_licenses(
             manifest,
             allow_restricted=bool(payload.get("allow_restricted", False)),
