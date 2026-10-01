@@ -1,8 +1,8 @@
 # Third-party notices and architectural influences
 
-CardiAnatomy v0.2.0 was designed after reviewing open cardiac anatomy, segmentation, meshing, coordinate, and microstructure projects. The core implementation in this repository is Virelion-authored unless a future file explicitly states otherwise.
+CardiAnatomy v0.3.0 was designed after reviewing open cardiac anatomy, segmentation, meshing, coordinate, and microstructure projects. The core implementation in this repository is Virelion-authored unless a future file explicitly states otherwise.
 
-No source code from the projects below is copied into the v0.2.0 core package. Their algorithms, interfaces, data-flow patterns, and publications informed the architecture.
+No source code from the projects below is copied into the v0.3.0 core package. Their algorithms, interfaces, data-flow patterns, and publications informed the architecture.
 
 | Project | Repository / site | License observed during review | CardiAnatomy use |
 |---|---|---|---|
@@ -19,8 +19,11 @@ No source code from the projects below is copied into the v0.2.0 core package. T
 | AugmentA | https://github.com/KIT-IBT/AugmentA | Academic Public License; commercial license required | architectural ideas only; restricted adapter policy |
 | openCARP | https://opencarp.org/ | Academic Public License; commercial licensing available | external runtime only after deployment/license review |
 | CEMRG HeartBuilder | https://github.com/OpenHeartDevelopers/cemrg-heartbuilder | repository license text unresolved during review | architecture reference only by default |
-| MorphiNetV2 | https://github.com/MalikTeng/MorphiNetV2 | code/model terms require deployment review | learned topology-preserving reconstruction backend candidate |
-| Bi-PT | https://github.com/Chenchuhui/Bi-PT | code/model terms require deployment review | sparse-CMR four-chamber reconstruction backend candidate |
+| MorphiNetV2 | https://github.com/MalikTeng/MorphiNetV2 | MIT | dense-correspondence reconstruction architecture; optional learned-backend candidate |
+| Bi-PT | https://github.com/Chenchuhui/Bi-PT | MIT | sparse-CMR four-chamber correspondence/deformation architecture; optional learned-backend candidate |
+| HeartVolMesh | https://github.com/ccmim/HeartVolMesh | Apache-2.0 | volumetric correspondence and scaled-Jacobian QC concepts; code/templates not yet released per upstream README |
+| MeshHeart | https://github.com/MengyunQ/MeshHeart | MIT | 3D+t mesh representation and generative-model architecture reference |
+| TetHeart | https://github.com/Scalsol/TetHeart | no repository license file observed during review | 4D tetrahedral recovery architecture reference only |
 
 ## Model weights and datasets
 
