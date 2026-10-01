@@ -8,6 +8,12 @@ from .cine import (
     select_ed_es_from_volume_curve,
 )
 from .coordinates import apply_affine, lps_to_ras_matrix, ras_to_lps_matrix
+from .correspondence import (
+    CorrespondenceSummary,
+    compare_corresponding_meshes,
+    connectivity_fingerprint,
+    transfer_point_data_by_index,
+)
 from .fibers import orthonormal_local_frame, reference_rule_based_microstructure
 from .geometry import (
     bounding_box,
@@ -35,6 +41,7 @@ from .manifests import (
     ToolchainManifest,
     audit_manifest_licenses,
 )
+from .motion import MeshMotionSummary, cyclic_closure_error, summarize_mesh_sequence
 from .models import (
     AnatomyBundle,
     AnatomyLabel,
@@ -165,6 +172,13 @@ __all__ = [
     "invert_affine",
     "compose_affines",
     "affine_round_trip_error",
+    "CorrespondenceSummary",
+    "compare_corresponding_meshes",
+    "connectivity_fingerprint",
+    "transfer_point_data_by_index",
+    "MeshMotionSummary",
+    "summarize_mesh_sequence",
+    "cyclic_closure_error",
 ]
 
 __version__ = "0.3.0"
