@@ -20,11 +20,14 @@ def label_volumes_ml(
     spacing_mm: tuple[float, ...],
 ) -> dict[int, float]:
     values = np.asarray(labels)
-    if values.ndim < 2:
-        raise ValueError("segmentation must have at least two dimensions")
-    if len(spacing_mm) < values.ndim:
-        raise ValueError("spacing_mm must cover all segmentation dimensions")
-    voxel_volume_mm3 = float(np.prod(spacing_mm[: values.ndim]))
+    if values.ndim != 3:
+        raise ValueError(
+            "label_volumes_ml expects one 3D segmentation; "
+            "select a cine phase before computing spatial volume"
+        )
+    if len(spacing_mm) < 3:
+        raise ValueError("spacing_mm must provide three spatial dimensions")
+    voxel_volume_mm3 = float(np.prod(spacing_mm[:3]))
     return {
         label: count * voxel_volume_mm3 / 1000.0
         for label, count in label_counts(values).items()
