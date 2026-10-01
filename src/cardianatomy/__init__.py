@@ -12,9 +12,11 @@ from .geometry import (
 )
 from .integrations import (
     biv_me_command,
+    biv_volumetric_command,
     geox_command,
     ldrb_command,
     meshtool_command,
+    myomesh_command,
     nnunet_predict_command,
     require_tool_policy,
     tool_catalog,
@@ -117,6 +119,8 @@ __all__ = [
     "require_tool_policy",
     "nnunet_predict_command",
     "biv_me_command",
+    "biv_volumetric_command",
+    "myomesh_command",
     "meshtool_command",
     "ldrb_command",
     "geox_command",
