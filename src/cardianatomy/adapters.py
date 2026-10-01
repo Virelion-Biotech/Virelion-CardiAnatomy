@@ -320,3 +320,66 @@ class MyoMeshBackend:
 def register_standard_monolithic_backends(service) -> None:
     service.register_backend(BivMeBackend())
     service.register_backend(MyoMeshBackend())
+
+
+@dataclass
+class ExistingArtifactStageBackend:
+    stage: StageName
+    output_kind: ArtifactKind
+    name: str = "external"
+
+    def available(self) -> bool:
+        return True
+
+    def run(
+        self,
+        request: AnatomyRequest,
+        bundle: AnatomyBundle,
+        workdir: Path,
+        parameters: dict,
+    ) -> StageOutput:
+        if not parameters.get("path"):
+            raise ValueError(
+                f"external/{self.stage} requires explicit parameter path"
+            )
+        path = Path(str(parameters["path"]))
+        artifact = _artifact_from_output(
+            request=request,
+            path=path,
+            artifact_id=str(
+                parameters.get(
+                    "artifact_id",
+                    f"{request.acquisition.acquisition_id}-{self.stage}",
+                )
+            ),
+            kind=self.output_kind,
+            producer=str(parameters.get("producer", "external")),
+            derived_from=[
+                str(value)
+                for value in parameters.get(
+                    "derived_from",
+                    [request.acquisition.source.artifact_id],
+                )
+            ],
+            frame_id=parameters.get("frame_id"),
+            metadata=dict(parameters.get("metadata") or {}),
+        )
+        return StageOutput(artifacts=[artifact])
+
+
+def register_existing_artifact_backends(service) -> None:
+    mapping: dict[StageName, ArtifactKind] = {
+        "segmentation": "segmentation",
+        "contours": "contour_set",
+        "surface_fit": "model_fit",
+        "surface_mesh": "surface_mesh",
+        "volume_mesh": "volume_mesh",
+        "coordinates": "coordinate_field",
+        "microstructure": "fiber_field",
+        "scar": "scar_map",
+        "registration": "registration",
+    }
+    for stage, kind in mapping.items():
+        service.register_stage_backend(
+            ExistingArtifactStageBackend(stage=stage, output_kind=kind)
+        )
