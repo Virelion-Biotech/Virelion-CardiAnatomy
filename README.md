@@ -141,7 +141,7 @@ CardiAnatomy does not fork every research codebase. It keeps a stable Virelion c
 | `FISIOCOMP-UFJF/MyoMesh` | DICOM alignment, scar handling, fibers, mesh-processing flow | MIT; adapter-friendly |
 | `LoreVanSantvliet/BiventricularSSM` | SSM/synthetic cohort workflow | MIT; synthetic/research backend |
 | Meshtool | conversion, extraction, mapping, smoothing, QC concepts | GPL-3.0; external-process integration |
-| LDRB | rule-based fiber methodology | LGPL-3.0+; optional external/backend integration |
+| `finsberg/fenicsx-ldrb` | rule-based fiber methodology on FEniCSx | MIT; optional external/backend integration |
 | AugmentA | atrial orifice/landmark/SSM/fiber architecture ideas | non-commercial academic license; **not enabled by default** |
 | openCARP | UVC/fiber/simulation ecosystem | academic/commercial dual licensing; **explicit deployment review required** |
 | CEMRG HeartBuilder | whole-heart modular pipeline and robust external-tool orchestration | license text unclear in repository review; architecture reference only by default |
