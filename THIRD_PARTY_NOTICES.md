@@ -15,9 +15,12 @@ No source code from the projects below is copied into the v0.2.0 core package. T
 | BiventricularSSM | https://github.com/LoreVanSantvliet/BiventricularSSM | MIT | synthetic geometry/SSM architecture |
 | atrialmtk | https://github.com/pcmlab/atrialmtk | GPL-3.0 | atrial/UAC architecture and external-backend candidate |
 | Meshtool | https://github.com/ElsevierSoftwareX/SOFTX_2019_291 | GPL-3.0 | external-process integration only by default |
-| LDRB | https://github.com/finsberg/ldrb | LGPL-3.0-or-later | methodology reference / optional backend |
+| fenicsx-ldrb | https://github.com/finsberg/fenicsx-ldrb | MIT | methodology reference / optional FEniCSx backend |
 | AugmentA | https://github.com/KIT-IBT/AugmentA | Academic Public License; commercial license required | architectural ideas only; restricted adapter policy |
 | openCARP | https://opencarp.org/ | Academic Public License; commercial licensing available | external runtime only after deployment/license review |
+| CEMRG HeartBuilder | https://github.com/OpenHeartDevelopers/cemrg-heartbuilder | repository license text unresolved during review | architecture reference only by default |
+| MorphiNetV2 | https://github.com/MalikTeng/MorphiNetV2 | code/model terms require deployment review | learned topology-preserving reconstruction backend candidate |
+| Bi-PT | https://github.com/Chenchuhui/Bi-PT | code/model terms require deployment review | sparse-CMR four-chamber reconstruction backend candidate |
 
 ## Model weights and datasets
 
@@ -32,3 +35,10 @@ Software license compatibility does not imply that model weights, training data,
 - PyMeshTool (2026) work on Python-native anatomical twinning and reduced intermediate-file overhead.
 
 See `docs/RESEARCH_SURVEY_2026-10-01.md` for the engineering synthesis.
+
+
+## 2026-10-02 integration policy
+
+CardiAnatomy 0.3.0 adds command adapters and toolchain manifests but does not vendor source code from the upstream projects listed above. Permissively licensed tools are invoked through explicit adapters. Copyleft, restricted, or unresolved-license projects remain separate processes or architecture references unless their deployment terms are explicitly reviewed.
+
+The license of a software repository does not automatically cover pretrained weights, atlases, statistical shape models, example clinical datasets, or other external assets. Those assets are tracked separately by `ToolchainManifest`.
