@@ -93,6 +93,18 @@ def main() -> int:
     )
     invert.add_argument("matrix")
 
+    correspondence = sub.add_parser(
+        "compare-correspondence",
+        help="Compare two densely corresponding meshes from a JSON payload",
+    )
+    correspondence.add_argument("payload")
+
+    motion = sub.add_parser(
+        "summarize-motion",
+        help="Summarize a dense-correspondence 3D+t mesh JSON payload",
+    )
+    motion.add_argument("payload")
+
     args = parser.parse_args()
     api = AnatomyAPI(CardiAnatomyService())
 
@@ -175,5 +187,11 @@ def main() -> int:
                 {"matrix": _load_json(args.matrix)}
             )
         )
+        return 0
+    if args.command == "compare-correspondence":
+        _write_json(api.correspondence_compare(_load_json(args.payload)))
+        return 0
+    if args.command == "summarize-motion":
+        _write_json(api.motion_summarize(_load_json(args.payload)))
         return 0
     return 2
