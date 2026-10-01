@@ -15,6 +15,9 @@ class CardiAnatomyService:
     def __init__(self) -> None:
         self._backends: dict[str, AnatomyBackend] = {}
         self.pipeline = PipelineExecutor()
+        from .native_backends import register_native_stage_backends
+
+        register_native_stage_backends(self)
 
     def register_backend(self, backend: AnatomyBackend) -> None:
         self._backends[backend.name] = backend
