@@ -13,8 +13,12 @@ def validate_affine(matrix: np.ndarray) -> np.ndarray:
         raise ValueError("homogeneous affine bottom-right element must equal 1")
     if not np.allclose(value[3, :3], 0.0):
         raise ValueError("affine bottom row must be [0, 0, 0, 1]")
-    if abs(np.linalg.det(value[:3, :3])) < 1e-12:
-        raise ValueError("affine spatial transform is singular")
+    spatial = value[:3, :3]
+    singular_values = np.linalg.svd(spatial, compute_uv=False)
+    largest = float(np.max(singular_values))
+    smallest = float(np.min(singular_values))
+    if largest == 0.0 or smallest <= np.finfo(float).eps * largest * 100.0:
+        raise ValueError("affine spatial transform is singular or numerically unstable")
     return value
 
 
@@ -39,6 +43,10 @@ def affine_round_trip_error(
     from .coordinates import apply_affine
 
     values = np.asarray(points, dtype=float)
+    if values.ndim != 2 or values.shape[1] != 3 or len(values) == 0:
+        raise ValueError("points must have shape (N, 3) with N > 0")
+    if not np.all(np.isfinite(values)):
+        raise ValueError("points must be finite")
     forward = apply_affine(values, validate_affine(matrix))
     restored = apply_affine(forward, invert_affine(matrix))
     return float(np.max(np.linalg.norm(values - restored, axis=1)))
