@@ -62,7 +62,9 @@ from .qc import (
     inspect_tetra_mesh,
     inspect_triangle_surface,
     qc_from_inspection,
+    tetra_mean_ratio_quality,
     tetra_signed_volumes,
+    triangle_shape_quality,
 )
 from .scar import classify_scalar_scar, scar_fractions
 from .segmentation import label_counts, label_volumes_ml, segmentation_qc
@@ -99,6 +101,8 @@ __all__ = [
     "inspect_tetra_mesh",
     "inspect_triangle_surface",
     "tetra_signed_volumes",
+    "tetra_mean_ratio_quality",
+    "triangle_shape_quality",
     "qc_from_inspection",
     "inspect_mesh_file",
     "inspect_nifti",
