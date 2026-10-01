@@ -5,8 +5,7 @@ import pytest
 from cardianatomy import inspect_dicom_directory
 
 
-def _write_minimal_dicom(path: Path, *, malformed_geometry: bool) -> str:
-    pytest.importorskip("pydicom")
+def _write_minimal_dicom(\n    path: Path,\n    *,\n    malformed_geometry: bool,\n    series_uid: str | None = None,\n) -> str:\n    pytest.importorskip("pydicom")
     from pydicom.dataset import FileDataset, FileMetaDataset
     from pydicom.uid import ExplicitVRLittleEndian, MRImageStorage, generate_uid
 
