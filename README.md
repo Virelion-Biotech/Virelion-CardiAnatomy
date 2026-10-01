@@ -151,7 +151,7 @@ CardiAnatomy does not fork every research codebase. It keeps a stable Virelion c
 | MeshHeart | personalized 3D+t mesh representation | MIT; representation/reference architecture, not a patient-measurement backend |
 | TetHeart | 4D tetrahedral recovery from full/sparse CMR | license unresolved in repository review; architecture reference only |
 
-See `docs/RESEARCH_SURVEY_2026-10-01.md` and `THIRD_PARTY_NOTICES.md`.
+See `docs/RESEARCH_SURVEY_2026-10-01.md`, `docs/UPSTREAM_MATRIX_2026-10-02.md`, `docs/VALIDATION.md`, and `THIRD_PARTY_NOTICES.md`.
 
 ## HeartTwin contract
 
@@ -174,6 +174,8 @@ CardiAnatomy advertises:
 - `anatomy.transforms.invert`
 - `anatomy.correspondence.compare`
 - `anatomy.motion.summarize`
+- `anatomy.validation.segmentation`
+- `anatomy.validation.points`
 
 HeartTwin should persist the returned `AnatomyBundle` as a typed artifact and enforce the correct downstream readiness gate before calling CardiEP, CardiMech, or CardiFlow.
 
