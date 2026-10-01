@@ -21,6 +21,8 @@ CardiAnatomy is a native HeartTwin service and the upstream geometry authority f
 - `anatomy.transforms.invert`
 - `anatomy.correspondence.compare`
 - `anatomy.motion.summarize`
+- `anatomy.validation.segmentation`
+- `anatomy.validation.points`
 
 HeartTwin's packaged registry advertises the same capability set and dispatches it in-process when the pinned CardiAnatomy package is installed.
 
