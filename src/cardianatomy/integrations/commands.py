@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Sequence
+from time import perf_counter
+from typing import Mapping, Sequence
 
 from .catalog import require_tool_policy
 
@@ -15,6 +17,8 @@ class CommandResult:
     returncode: int
     stdout: str
     stderr: str
+    duration_seconds: float
+    executable: str | None
 
 
 def executable_available(executable: str) -> bool:
@@ -24,14 +28,24 @@ def executable_available(executable: str) -> bool:
 def run_command(
     command: Sequence[str],
     *,
-    timeout: int = 3600,
+    timeout: float = 3600.0,
     cwd: str | Path | None = None,
+    env: Mapping[str, str] | None = None,
 ) -> CommandResult:
     if not command:
         raise ValueError("command must not be empty")
+    argv = [str(item) for item in command]
+    executable = shutil.which(argv[0])
+    if executable is None and not Path(argv[0]).is_file():
+        raise FileNotFoundError(f"Executable not found: {argv[0]}")
+    process_env = os.environ.copy()
+    if env:
+        process_env.update({str(key): str(value) for key, value in env.items()})
+    started = perf_counter()
     process = subprocess.run(
-        [str(item) for item in command],
+        argv,
         cwd=None if cwd is None else str(cwd),
+        env=process_env,
         capture_output=True,
         text=True,
         timeout=timeout,
@@ -39,10 +53,12 @@ def run_command(
         shell=False,
     )
     result = CommandResult(
-        command=tuple(str(item) for item in command),
+        command=tuple(argv),
         returncode=process.returncode,
         stdout=process.stdout,
         stderr=process.stderr,
+        duration_seconds=perf_counter() - started,
+        executable=executable or str(Path(argv[0]).resolve()),
     )
     if process.returncode:
         message = process.stderr.strip() or process.stdout.strip()
