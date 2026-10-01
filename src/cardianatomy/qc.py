@@ -43,6 +43,47 @@ def tetra_mean_ratio_quality(points: np.ndarray, tetrahedra: np.ndarray) -> np.n
     )
 
 
+def tetra_scaled_jacobian_quality(
+    points: np.ndarray,
+    tetrahedra: np.ndarray,
+) -> np.ndarray:
+    """Return minimum corner scaled-Jacobian magnitude per tetrahedron in [0, 1]."""
+    points = _validate_points(points)
+    tetrahedra = np.asarray(tetrahedra, dtype=int)
+    tetra_signed_volumes(points, tetrahedra)
+
+    corner_neighbors = (
+        (0, 1, 2, 3),
+        (1, 0, 2, 3),
+        (2, 0, 1, 3),
+        (3, 0, 1, 2),
+    )
+    corner_quality = []
+    for origin, first, second, third in corner_neighbors:
+        p0 = points[tetrahedra[:, origin]]
+        e1 = points[tetrahedra[:, first]] - p0
+        e2 = points[tetrahedra[:, second]] - p0
+        e3 = points[tetrahedra[:, third]] - p0
+        determinant = np.abs(
+            np.einsum("ij,ij->i", np.cross(e1, e2), e3)
+        )
+        denominator = (
+            np.linalg.norm(e1, axis=1)
+            * np.linalg.norm(e2, axis=1)
+            * np.linalg.norm(e3, axis=1)
+        )
+        scaled = np.divide(
+            np.sqrt(2.0) * determinant,
+            denominator,
+            out=np.zeros_like(determinant),
+            where=denominator > 0,
+        )
+        corner_quality.append(scaled)
+
+    quality = np.min(np.stack(corner_quality, axis=1), axis=1)
+    return np.clip(quality, 0.0, 1.0)
+
+
 def triangle_shape_quality(points: np.ndarray, triangles: np.ndarray) -> np.ndarray:
     """Return normalized triangle shape quality in [0, 1]."""
     points = _validate_points(points)
@@ -129,6 +170,11 @@ def inspect_tetra_mesh(points: np.ndarray, tetrahedra: np.ndarray) -> MeshInspec
         minority_fraction = min(positive, negative) / len(nonzero)
     lengths = _edge_lengths(points, tetrahedra)
     quality = tetra_mean_ratio_quality(points, tetrahedra)
+    scaled_jacobian = tetra_scaled_jacobian_quality(points, tetrahedra)
+    metadata = _quality_summary(quality, "tetra_mean_ratio")
+    metadata.update(
+        _quality_summary(scaled_jacobian, "tetra_scaled_jacobian")
+    )
     return MeshInspection(
         point_count=len(points),
         cell_count=len(tetrahedra),
@@ -141,7 +187,7 @@ def inspect_tetra_mesh(points: np.ndarray, tetrahedra: np.ndarray) -> MeshInspec
         min_abs_tetra_volume=float(abs_volumes.min()) if len(abs_volumes) else None,
         max_abs_tetra_volume=float(abs_volumes.max()) if len(abs_volumes) else None,
         finite=finite,
-        metadata=_quality_summary(quality, "tetra_mean_ratio"),
+        metadata=metadata,
     )
 
 
@@ -205,6 +251,7 @@ def qc_from_inspection(
             raise ValueError("minimum_shape_quality must lie in [0, 1]")
         quality_keys = (
             "tetra_mean_ratio_min",
+            "tetra_scaled_jacobian_min",
             "triangle_quality_min",
         )
         quality_values = [
