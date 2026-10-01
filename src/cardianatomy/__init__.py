@@ -187,4 +187,4 @@ __all__ = [
     "cyclic_closure_error",
 ]
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
