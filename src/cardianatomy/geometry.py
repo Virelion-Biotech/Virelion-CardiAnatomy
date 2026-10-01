@@ -22,6 +22,10 @@ def bounding_box(points: np.ndarray) -> dict[str, list[float]]:
 def triangle_surface_area(points: np.ndarray, triangles: np.ndarray) -> float:
     points = np.asarray(points, dtype=float)
     triangles = np.asarray(triangles, dtype=int)
+    if points.ndim != 2 or points.shape[1] != 3:
+        raise ValueError("points must have shape (N, 3)")
+    if not np.all(np.isfinite(points)):
+        raise ValueError("points must be finite")
     if triangles.ndim != 2 or triangles.shape[1] != 3:
         raise ValueError("triangles must have shape (M, 3)")
     if triangles.size and (triangles.min() < 0 or triangles.max() >= len(points)):
@@ -39,6 +43,10 @@ def closed_surface_signed_volume(points: np.ndarray, triangles: np.ndarray) -> f
     """Compute oriented volume of a closed triangular surface."""
     points = np.asarray(points, dtype=float)
     triangles = np.asarray(triangles, dtype=int)
+    if points.ndim != 2 or points.shape[1] != 3:
+        raise ValueError("points must have shape (N, 3)")
+    if not np.all(np.isfinite(points)):
+        raise ValueError("points must be finite")
     if triangles.ndim != 2 or triangles.shape[1] != 3:
         raise ValueError("triangles must have shape (M, 3)")
     if triangles.size and (triangles.min() < 0 or triangles.max() >= len(points)):
@@ -50,6 +58,14 @@ def closed_surface_signed_volume(points: np.ndarray, triangles: np.ndarray) -> f
 def mesh_scale_metrics(points: np.ndarray, cells: np.ndarray) -> dict[str, float]:
     points = np.asarray(points, dtype=float)
     cells = np.asarray(cells, dtype=int)
+    if points.ndim != 2 or points.shape[1] != 3:
+        raise ValueError("points must have shape (N, 3)")
+    if not np.all(np.isfinite(points)):
+        raise ValueError("points must be finite")
+    if cells.ndim != 2:
+        raise ValueError("cells must be a 2D connectivity array")
+    if cells.size and (cells.min() < 0 or cells.max() >= len(points)):
+        raise ValueError("cells contain out-of-range point indices")
     edges: set[tuple[int, int]] = set()
     for cell in cells:
         for i in range(len(cell)):
