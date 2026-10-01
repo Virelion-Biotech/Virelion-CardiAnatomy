@@ -92,6 +92,12 @@ from .transforms import (
     invert_affine,
     validate_affine,
 )
+from .validation import (
+    PointSetDistanceSummary,
+    nearest_point_distances,
+    point_set_distance_summary,
+    segmentation_overlap_metrics,
+)
 
 __all__ = [
     "AnatomyAPI",
@@ -185,6 +191,10 @@ __all__ = [
     "MeshMotionSummary",
     "summarize_mesh_sequence",
     "cyclic_closure_error",
+    "PointSetDistanceSummary",
+    "nearest_point_distances",
+    "point_set_distance_summary",
+    "segmentation_overlap_metrics",
 ]
 
 __version__ = "0.4.0"
