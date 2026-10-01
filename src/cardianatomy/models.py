@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime
+import math
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+import numpy as np
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 ArtifactKind = Literal[
@@ -49,13 +51,26 @@ StageName = Literal[
 StageStatus = Literal["pending", "running", "ok", "skipped", "error"]
 
 
+def _safe_identifier(value: str, field_name: str) -> str:
+    if not value or not value.strip():
+        raise ValueError(f"{field_name} must not be empty")
+    if value in {".", ".."} or any(token in value for token in ("/", "\\", "\x00")):
+        raise ValueError(f"{field_name} contains unsafe path characters")
+    return value
+
+
 class ArtifactRef(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     artifact_id: str
     kind: ArtifactKind
     uri: str
-    sha256: str | None = Field(default=None, min_length=64, max_length=64)
+    sha256: str | None = Field(
+        default=None,
+        min_length=64,
+        max_length=64,
+        pattern=r"^[0-9a-fA-F]{64}$",
+    )
     media_type: str | None = None
     producer: str | None = None
     size_bytes: int | None = Field(default=None, ge=0)
@@ -85,6 +100,23 @@ class ImagingAcquisition(BaseModel):
     phase_count: int | None = Field(default=None, ge=1)
     selected_phases: dict[str, int] = Field(default_factory=dict)
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("subject_id", "study_id", "acquisition_id")
+    @classmethod
+    def safe_identifiers(cls, value: str, info) -> str:
+        return _safe_identifier(value, info.field_name)
+
+    @model_validator(mode="after")
+    def validate_geometry_metadata(self) -> "ImagingAcquisition":
+        if self.shape is not None and any(int(value) <= 0 for value in self.shape):
+            raise ValueError("shape dimensions must be strictly positive")
+        if self.voxel_spacing_mm is not None:
+            spacing = np.asarray(self.voxel_spacing_mm, dtype=float)
+            if not np.all(np.isfinite(spacing)) or np.any(spacing <= 0):
+                raise ValueError(
+                    "voxel_spacing_mm must contain finite positive values"
+                )
+        return self
 
 
 class DicomSeriesSummary(BaseModel):
@@ -116,10 +148,9 @@ class CoordinateFrame(BaseModel):
     @model_validator(mode="after")
     def validate_affine(self) -> "CoordinateFrame":
         if self.affine_to_parent is not None:
-            if len(self.affine_to_parent) != 4 or any(
-                len(row) != 4 for row in self.affine_to_parent
-            ):
-                raise ValueError("affine_to_parent must be a 4x4 matrix")
+            from .transforms import validate_affine
+
+            validate_affine(np.asarray(self.affine_to_parent, dtype=float))
         return self
 
 
@@ -141,8 +172,11 @@ class RegistrationRef(BaseModel):
         if self.transform is None and self.matrix is None:
             raise ValueError("registration requires a transform artifact or inline matrix")
         if self.matrix is not None:
-            if len(self.matrix) != 4 or any(len(row) != 4 for row in self.matrix):
-                raise ValueError("registration matrix must be 4x4")
+            from .transforms import validate_affine
+
+            validate_affine(np.asarray(self.matrix, dtype=float))
+        if self.quality_metric is not None and not math.isfinite(self.quality_metric):
+            raise ValueError("quality_metric must be finite")
         return self
 
 
@@ -219,6 +253,11 @@ class AnatomyRequest(BaseModel):
     plan: PipelinePlan | None = None
     output_root: str | None = None
     parameters: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("subject_id")
+    @classmethod
+    def safe_subject_id(cls, value: str) -> str:
+        return _safe_identifier(value, "subject_id")
 
     @model_validator(mode="after")
     def consistent_subject(self) -> "AnatomyRequest":
@@ -310,6 +349,11 @@ class ScarThresholdSpec(BaseModel):
 
     @model_validator(mode="after")
     def ordered(self) -> "ScarThresholdSpec":
+        if not (
+            math.isfinite(self.border_threshold)
+            and math.isfinite(self.core_threshold)
+        ):
+            raise ValueError("scar thresholds must be finite")
         if self.border_threshold >= self.core_threshold:
             raise ValueError("border_threshold must be lower than core_threshold")
         return self
@@ -322,3 +366,15 @@ class FiberAngleProfile(BaseModel):
     alpha_epi_deg: float = -60.0
     beta_endo_deg: float = 0.0
     beta_epi_deg: float = 0.0
+
+    @model_validator(mode="after")
+    def finite_angles(self) -> "FiberAngleProfile":
+        values = (
+            self.alpha_endo_deg,
+            self.alpha_epi_deg,
+            self.beta_endo_deg,
+            self.beta_epi_deg,
+        )
+        if not all(math.isfinite(value) for value in values):
+            raise ValueError("fiber angles must be finite")
+        return self
