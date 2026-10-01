@@ -23,7 +23,8 @@ def validate_affine(matrix: np.ndarray) -> np.ndarray:
 
 
 def invert_affine(matrix: np.ndarray) -> np.ndarray:
-    return np.linalg.inv(validate_affine(matrix))
+    inverse = np.linalg.inv(validate_affine(matrix))
+    return validate_affine(inverse)
 
 
 def compose_affines(*matrices: np.ndarray) -> np.ndarray:
