@@ -28,3 +28,11 @@ def test_restricted_tool_is_flagged() -> None:
     )
     assert audit_manifest_licenses(manifest)
     assert not audit_manifest_licenses(manifest, allow_restricted=True)
+
+
+def test_unknown_license_remains_flagged_when_restricted_is_allowed() -> None:
+    manifest = ToolchainManifest(
+        tools=[ToolchainEntry(tool_id="cemrg-heartbuilder")],
+    )
+    problems = audit_manifest_licenses(manifest, allow_restricted=True)
+    assert any("unresolved" in item for item in problems)
