@@ -13,9 +13,13 @@ coverage.xml
 htmlcov/
 outputs/
 artifacts/
+work/
 *.nii
 *.nii.gz
 *.dcm
 *.vtk
 *.vtu
 *.msh
+*.xdmf
+*.h5
+*.hdf5
