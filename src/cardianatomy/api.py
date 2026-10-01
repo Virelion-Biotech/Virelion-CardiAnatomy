@@ -5,6 +5,7 @@ from typing import Any
 import numpy as np
 
 from .cine import select_ed_es_from_segmentation, select_ed_es_from_volume_curve
+from .correspondence import compare_corresponding_meshes, connectivity_fingerprint
 from .fibers import reference_rule_based_microstructure
 from .geometry import (
     bounding_box,
@@ -14,6 +15,7 @@ from .geometry import (
 )
 from .integrations import tool_catalog
 from .manifests import ToolchainManifest, audit_manifest_licenses
+from .motion import cyclic_closure_error, summarize_mesh_sequence
 from .models import (
     AnatomyBundle,
     AnatomyRequest,
@@ -50,6 +52,8 @@ class AnatomyAPI:
         "anatomy.cine.phases",
         "anatomy.transforms.compose",
         "anatomy.transforms.invert",
+        "anatomy.correspondence.compare",
+        "anatomy.motion.summarize",
     )
 
     def __init__(self, service: CardiAnatomyService | None = None) -> None:
@@ -245,6 +249,70 @@ class AnatomyAPI:
             validate_affine(np.asarray(payload["matrix"], dtype=float))
         )
         return {"matrix": matrix.tolist()}
+
+    def correspondence_compare(self, payload: dict[str, Any]) -> dict[str, Any]:
+        reference_cells = payload.get("reference_cells")
+        target_cells = payload.get("target_cells")
+        result = compare_corresponding_meshes(
+            np.asarray(payload["reference_points"], dtype=float),
+            np.asarray(payload["target_points"], dtype=float),
+            reference_cells=(
+                None
+                if reference_cells is None
+                else np.asarray(reference_cells, dtype=int)
+            ),
+            target_cells=(
+                None
+                if target_cells is None
+                else np.asarray(target_cells, dtype=int)
+            ),
+        )
+        output = {
+            "point_count": result.point_count,
+            "mean_displacement": result.mean_displacement,
+            "rms_displacement": result.rms_displacement,
+            "median_displacement": result.median_displacement,
+            "p95_displacement": result.p95_displacement,
+            "max_displacement": result.max_displacement,
+            "connectivity_identical": result.connectivity_identical,
+            "reference_centroid": list(result.reference_centroid),
+            "target_centroid": list(result.target_centroid),
+            "validation_status": "index_correspondence_assumed",
+        }
+        if reference_cells is not None and target_cells is not None:
+            output["reference_connectivity_sha256"] = connectivity_fingerprint(
+                np.asarray(reference_cells, dtype=int)
+            )
+            output["target_connectivity_sha256"] = connectivity_fingerprint(
+                np.asarray(target_cells, dtype=int)
+            )
+        return output
+
+    def motion_summarize(self, payload: dict[str, Any]) -> dict[str, Any]:
+        frames = np.asarray(payload["frames"], dtype=float)
+        result = summarize_mesh_sequence(
+            frames,
+            reference_phase=int(payload.get("reference_phase", 0)),
+        )
+        output = {
+            "phase_count": result.phase_count,
+            "point_count": result.point_count,
+            "reference_phase": result.reference_phase,
+            "rms_displacement_to_reference": list(
+                result.rms_displacement_to_reference
+            ),
+            "max_displacement_to_reference": list(
+                result.max_displacement_to_reference
+            ),
+            "rms_step_displacement": list(result.rms_step_displacement),
+            "max_step_displacement": list(result.max_step_displacement),
+            "mean_vertex_path_length": result.mean_vertex_path_length,
+            "max_vertex_path_length": result.max_vertex_path_length,
+            "validation_status": "dense_correspondence_assumed",
+        }
+        if bool(payload.get("cyclic", False)):
+            output["cyclic_closure_error"] = cyclic_closure_error(frames)
+        return output
 
     @staticmethod
     def qc(inspection) -> dict[str, Any]:
