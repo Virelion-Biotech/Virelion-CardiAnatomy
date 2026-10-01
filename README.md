@@ -45,7 +45,7 @@ flowchart LR
 - **Cardiac anatomy contract v2.0.0** with artifact lineage, frames, registrations, labels, stage records, QC, and fingerprints.
 - **Target-specific readiness gates** for surface workflows, EP, mechanics, and flow.
 - **Resumable staged pipeline executor** with deterministic stage fingerprints and JSON sidecars.
-- **Mesh QC** for triangle surfaces and tetrahedral volumes: degeneracy, connectedness, orientation consistency, manifold/boundary edges, edge scales, and finite values.
+- **Mesh QC** for triangle surfaces and tetrahedral volumes: degeneracy, connectedness, orientation consistency, manifold/boundary edges, edge scales, normalized mean-ratio/scaled-Jacobian shape quality, and finite values.
 - **DICOM inspection** that intentionally omits direct patient identifiers and hashes SeriesInstanceUID values.
 - **NIfTI inspection** for shape, voxel spacing, affine, and finite transforms.
 - **MeshIO integration** for VTK/VTU/Gmsh/etc. inspection through an optional dependency.
@@ -57,6 +57,8 @@ flowchart LR
 - **Metadata-only cine series triage** for SAX/2CH/3CH/4CH hints, explicitly labeled heuristic rather than validated view classification.
 - **Segmentation-derived cine volume curves and ED/ES phase selection** with stroke-volume/ejection-fraction summaries and minimum dynamic-range safeguards.
 - **Validated affine composition/inversion primitives** for explicit coordinate-frame chains and round-trip checks.
+- **Dense-correspondence comparison** with connectivity fingerprints and explicit displacement summaries, without conflating identical connectivity with proof of diffeomorphism.
+- **3D+t mesh-motion summaries** with reference-phase displacement, inter-phase motion, vertex path length, and optional cyclic-closure error.
 - **Explicit scar/border/core threshold application** without pretending to estimate clinically valid LGE thresholds.
 - **License-aware toolchain manifests** that track model weights, atlases, executables, versions, hashes, and deployment policy.
 - **Native ingest, geometry-QC, and export stages** plus resumable stage sidecars that restore output artifacts and QC correctly.
@@ -141,8 +143,11 @@ CardiAnatomy does not fork every research codebase. It keeps a stable Virelion c
 | AugmentA | atrial orifice/landmark/SSM/fiber architecture ideas | non-commercial academic license; **not enabled by default** |
 | openCARP | UVC/fiber/simulation ecosystem | academic/commercial dual licensing; **explicit deployment review required** |
 | CEMRG HeartBuilder | whole-heart modular pipeline and robust external-tool orchestration | license text unclear in repository review; architecture reference only by default |
-| MorphiNetV2 | topology-preserving dense-correspondence biventricular reconstruction | research/model backend candidate; review code + weight terms before enabling |
-| Bi-PT | sparse-CMR four-chamber atlas deformation | emerging research backend candidate; keep experimental until independently validated |
+| MorphiNetV2 | dense-correspondence biventricular reconstruction | MIT software; weights/data reviewed separately; correspondence concepts integrated |
+| Bi-PT | sparse-CMR four-chamber atlas deformation with semantic correspondence | MIT software; experimental learned backend; correspondence concepts integrated |
+| HeartVolMesh | template-driven tetrahedral correspondence and simulation-oriented element QC | Apache-2.0 repository; implementation/templates not yet released upstream |
+| MeshHeart | personalized 3D+t mesh representation | MIT; representation/reference architecture, not a patient-measurement backend |
+| TetHeart | 4D tetrahedral recovery from full/sparse CMR | license unresolved in repository review; architecture reference only |
 
 See `docs/RESEARCH_SURVEY_2026-10-01.md` and `THIRD_PARTY_NOTICES.md`.
 
@@ -165,6 +170,8 @@ CardiAnatomy advertises:
 - `anatomy.cine.phases`
 - `anatomy.transforms.compose`
 - `anatomy.transforms.invert`
+- `anatomy.correspondence.compare`
+- `anatomy.motion.summarize`
 
 HeartTwin should persist the returned `AnatomyBundle` as a typed artifact and enforce the correct downstream readiness gate before calling CardiEP, CardiMech, or CardiFlow.
 
