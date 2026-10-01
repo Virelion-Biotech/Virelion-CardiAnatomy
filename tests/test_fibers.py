@@ -5,9 +5,9 @@ from cardianatomy import reference_rule_based_microstructure
 
 def test_reference_microstructure_is_orthonormal() -> None:
     c = np.tile([1.0, 0.0, 0.0], (3, 1))
-    l = np.tile([0.0, 1.0, 0.0], (3, 1))
+    longitudinal_axis = np.tile([0.0, 1.0, 0.0], (3, 1))
     rho = np.array([0.0, 0.5, 1.0])
-    fiber, sheet, normal = reference_rule_based_microstructure(c, l, rho)
+    fiber, sheet, normal = reference_rule_based_microstructure(c, longitudinal_axis, rho)
     np.testing.assert_allclose(np.linalg.norm(fiber, axis=1), 1.0)
     np.testing.assert_allclose(np.linalg.norm(sheet, axis=1), 1.0)
     np.testing.assert_allclose(np.linalg.norm(normal, axis=1), 1.0)
