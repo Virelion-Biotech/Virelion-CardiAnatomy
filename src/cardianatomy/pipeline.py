@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 import json
 import os
 from datetime import datetime, timezone
@@ -126,6 +127,53 @@ def _write_sidecar_atomic(path: Path, payload: dict) -> None:
             temporary.unlink()
 
 
+@contextmanager
+def _exclusive_workdir(workdir: Path):
+    lock_path = workdir / ".cardianatomy.lock"
+    handle = lock_path.open("a+b")
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            if lock_path.stat().st_size == 0:
+                handle.write(b"0")
+                handle.flush()
+            handle.seek(0)
+            try:
+                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            except OSError as exc:
+                raise RuntimeError(
+                    f"Another CardiAnatomy pipeline is using {workdir}"
+                ) from exc
+        else:
+            import fcntl
+
+            try:
+                fcntl.flock(
+                    handle.fileno(),
+                    fcntl.LOCK_EX | fcntl.LOCK_NB,
+                )
+            except OSError as exc:
+                raise RuntimeError(
+                    f"Another CardiAnatomy pipeline is using {workdir}"
+                ) from exc
+        yield
+    finally:
+        try:
+            if os.name == "nt":
+                import msvcrt
+
+                handle.seek(0)
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        except OSError:
+            pass
+        handle.close()
+
+
 def _ensure_unique_output_ids(
     bundle: AnatomyBundle,
     artifacts: list[ArtifactRef],
@@ -158,6 +206,21 @@ class PipelineExecutor:
         return {stage: sorted(names) for stage, names in sorted(output.items())}
 
     def execute(self, request: AnatomyRequest, plan: PipelinePlan) -> AnatomyBundle:
+        validate_stage_order(plan)
+        workdir = (
+            Path(request.output_root or "work")
+            / request.subject_id
+            / request.acquisition.acquisition_id
+        )
+        workdir.mkdir(parents=True, exist_ok=True)
+        with _exclusive_workdir(workdir):
+            return self._execute_unlocked(request, plan)
+
+    def _execute_unlocked(
+        self,
+        request: AnatomyRequest,
+        plan: PipelinePlan,
+    ) -> AnatomyBundle:
         validate_stage_order(plan)
         workdir = (
             Path(request.output_root or "work")
