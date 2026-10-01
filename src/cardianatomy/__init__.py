@@ -76,6 +76,7 @@ from .qc import (
     inspect_triangle_surface,
     qc_from_inspection,
     tetra_mean_ratio_quality,
+    tetra_scaled_jacobian_quality,
     tetra_signed_volumes,
     triangle_shape_quality,
 )
@@ -121,6 +122,7 @@ __all__ = [
     "inspect_triangle_surface",
     "tetra_signed_volumes",
     "tetra_mean_ratio_quality",
+    "tetra_scaled_jacobian_quality",
     "triangle_shape_quality",
     "qc_from_inspection",
     "inspect_mesh_file",
