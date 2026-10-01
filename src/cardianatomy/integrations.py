@@ -58,7 +58,7 @@ _TOOLS: tuple[ToolSpec, ...] = (
         license_class="permissive",
         default_allowed=True,
         purpose=("synthetic-geometry", "mesh", "markers", "solver-export"),
-        notes="Useful for fixtures and solver-ready geometry; synthetic output is not patient anatomy.",
+        notes=(\n            "Useful for fixtures and solver-ready geometry; synthetic output is not patient anatomy."\n        ),
     ),
     ToolSpec(
         tool_id="myomesh",
@@ -88,7 +88,7 @@ _TOOLS: tuple[ToolSpec, ...] = (
         license_class="copyleft",
         default_allowed=True,
         purpose=("mesh-convert", "mesh-extract", "mesh-map", "mesh-smooth"),
-        notes="Default integration is subprocess/adapter based; preserve upstream license obligations.",
+        notes=(\n            "Default integration is subprocess/adapter based; preserve upstream license obligations."\n        ),
     ),
     ToolSpec(
         tool_id="biventricular-ssm",
