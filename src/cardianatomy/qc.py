@@ -14,20 +14,37 @@ def _validate_points(points: np.ndarray) -> np.ndarray:
     return points
 
 
+def _validate_cells(
+    cells: np.ndarray,
+    width: int,
+    node_count: int,
+    name: str,
+) -> np.ndarray:
+    values = np.asarray(cells, dtype=int)
+    if values.ndim != 2 or values.shape[1] != width:
+        raise ValueError(f"{name} must have shape (M, {width})")
+    if values.size and (values.min() < 0 or values.max() >= node_count):
+        raise ValueError(f"{name} contain out-of-range node indices")
+    return values
+
+
+def _require_finite_points(points: np.ndarray) -> None:
+    if not np.all(np.isfinite(points)):
+        raise ValueError("points must contain only finite values")
+
+
 def tetra_signed_volumes(points: np.ndarray, tetrahedra: np.ndarray) -> np.ndarray:
     points = _validate_points(points)
-    tetrahedra = np.asarray(tetrahedra, dtype=int)
-    if tetrahedra.ndim != 2 or tetrahedra.shape[1] != 4:
-        raise ValueError("tetrahedra must have shape (M, 4)")
-    if tetrahedra.size and (tetrahedra.min() < 0 or tetrahedra.max() >= len(points)):
-        raise ValueError("tetrahedra contain out-of-range node indices")
+    tetrahedra = _validate_cells(tetrahedra, 4, len(points), "tetrahedra")
+    _require_finite_points(points)
     p0, p1, p2, p3 = (points[tetrahedra[:, i]] for i in range(4))
     return np.einsum("ij,ij->i", np.cross(p1 - p0, p2 - p0), p3 - p0) / 6.0
 
 def tetra_mean_ratio_quality(points: np.ndarray, tetrahedra: np.ndarray) -> np.ndarray:
     """Return normalized tetrahedral mean-ratio quality in [0, 1]."""
     points = _validate_points(points)
-    tetrahedra = np.asarray(tetrahedra, dtype=int)
+    tetrahedra = _validate_cells(tetrahedra, 4, len(points), "tetrahedra")
+    _require_finite_points(points)
     volumes = np.abs(tetra_signed_volumes(points, tetrahedra))
     edge_pairs = ((0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3))
     edge_sq_sum = np.zeros(len(tetrahedra), dtype=float)
@@ -49,7 +66,8 @@ def tetra_scaled_jacobian_quality(
 ) -> np.ndarray:
     """Return minimum corner scaled-Jacobian magnitude per tetrahedron in [0, 1]."""
     points = _validate_points(points)
-    tetrahedra = np.asarray(tetrahedra, dtype=int)
+    tetrahedra = _validate_cells(tetrahedra, 4, len(points), "tetrahedra")
+    _require_finite_points(points)
     tetra_signed_volumes(points, tetrahedra)
 
     corner_neighbors = (
@@ -87,7 +105,8 @@ def tetra_scaled_jacobian_quality(
 def triangle_shape_quality(points: np.ndarray, triangles: np.ndarray) -> np.ndarray:
     """Return normalized triangle shape quality in [0, 1]."""
     points = _validate_points(points)
-    triangles = np.asarray(triangles, dtype=int)
+    triangles = _validate_cells(triangles, 3, len(points), "triangles")
+    _require_finite_points(points)
     a, b, c = (points[triangles[:, i]] for i in range(3))
     area = np.linalg.norm(np.cross(b - a, c - a), axis=1) / 2.0
     edge_sq_sum = (
@@ -155,11 +174,20 @@ def _connected_components(node_count: int, cells: np.ndarray) -> int:
 
 def inspect_tetra_mesh(points: np.ndarray, tetrahedra: np.ndarray) -> MeshInspection:
     points = _validate_points(points)
-    tetrahedra = np.asarray(tetrahedra, dtype=int)
+    tetrahedra = _validate_cells(tetrahedra, 4, len(points), "tetrahedra")
+    finite = bool(np.all(np.isfinite(points)))
+    if not finite:
+        return MeshInspection(
+            point_count=len(points),
+            cell_count=len(tetrahedra),
+            tetra_count=len(tetrahedra),
+            connected_components=_connected_components(len(points), tetrahedra),
+            finite=False,
+        )
     volumes = tetra_signed_volumes(points, tetrahedra)
-    finite = bool(np.all(np.isfinite(points)) and np.all(np.isfinite(volumes)))
+    finite = bool(np.all(np.isfinite(volumes)))
     abs_volumes = np.abs(volumes)
-    scale = max(float(np.max(abs_volumes)) if len(abs_volumes) else 0.0, 1.0)
+    scale = float(np.max(abs_volumes)) if len(abs_volumes) else 0.0
     tolerance = np.finfo(float).eps * scale * 100.0
     degenerate = abs_volumes <= tolerance
     nonzero = volumes[~degenerate]
@@ -193,14 +221,18 @@ def inspect_tetra_mesh(points: np.ndarray, tetrahedra: np.ndarray) -> MeshInspec
 
 def inspect_triangle_surface(points: np.ndarray, triangles: np.ndarray) -> MeshInspection:
     points = _validate_points(points)
-    triangles = np.asarray(triangles, dtype=int)
-    if triangles.ndim != 2 or triangles.shape[1] != 3:
-        raise ValueError("triangles must have shape (M, 3)")
-    if triangles.size and (triangles.min() < 0 or triangles.max() >= len(points)):
-        raise ValueError("triangles contain out-of-range node indices")
+    triangles = _validate_cells(triangles, 3, len(points), "triangles")
+    if not np.all(np.isfinite(points)):
+        return MeshInspection(
+            point_count=len(points),
+            cell_count=len(triangles),
+            triangle_count=len(triangles),
+            connected_components=_connected_components(len(points), triangles),
+            finite=False,
+        )
     a, b, c = (points[triangles[:, i]] for i in range(3))
     areas = np.linalg.norm(np.cross(b - a, c - a), axis=1) / 2.0
-    scale = max(float(np.max(areas)) if len(areas) else 0.0, 1.0)
+    scale = float(np.max(areas)) if len(areas) else 0.0
     tolerance = np.finfo(float).eps * scale * 100.0
     degenerate = areas <= tolerance
     counts: Counter[tuple[int, int]] = Counter()
