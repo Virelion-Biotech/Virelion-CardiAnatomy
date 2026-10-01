@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -82,7 +81,7 @@ def inspect_dicom_directory(path: str | Path) -> list[DicomSeriesSummary]:
     root = Path(path)
     if not root.is_dir():
         raise ValueError(f"DICOM directory does not exist: {root}")
-    series: dict[str, list[Any]] = defaultdict(list)
+    series: dict[str, tuple[Any, int]] = {}
     for file in sorted(p for p in root.rglob("*") if p.is_file()):
         try:
             ds = pydicom.dcmread(str(file), stop_before_pixels=True, force=False)
@@ -90,10 +89,13 @@ def inspect_dicom_directory(path: str | Path) -> list[DicomSeriesSummary]:
             continue
         uid = str(getattr(ds, "SeriesInstanceUID", ""))
         if uid:
-            series[uid].append(ds)
+            if uid in series:
+                first, count = series[uid]
+                series[uid] = (first, count + 1)
+            else:
+                series[uid] = (ds, 1)
     output: list[DicomSeriesSummary] = []
-    for uid, datasets in series.items():
-        first = datasets[0]
+    for uid, (first, file_count) in series.items():
         warnings: list[str] = []
         spacing = _float_tuple_or_none(
             getattr(first, "PixelSpacing", None),
@@ -116,7 +118,7 @@ def inspect_dicom_directory(path: str | Path) -> list[DicomSeriesSummary]:
                 series_uid_sha256=sha256(uid),
                 modality=str(getattr(first, "Modality", "")) or None,
                 description=str(getattr(first, "SeriesDescription", "")) or None,
-                file_count=len(datasets),
+                file_count=file_count,
                 rows=_positive_int_or_none(
                     getattr(first, "Rows", None),
                     "Rows",
