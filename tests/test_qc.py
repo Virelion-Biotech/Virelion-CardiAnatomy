@@ -5,6 +5,7 @@ from cardianatomy import (
     inspect_triangle_surface,
     qc_from_inspection,
     tetra_mean_ratio_quality,
+    tetra_scaled_jacobian_quality,
     triangle_shape_quality,
 )
 
@@ -75,3 +76,31 @@ def test_shape_quality_threshold_can_fail_distorted_tetra() -> None:
     qc = qc_from_inspection(inspection, minimum_shape_quality=0.1)
     assert not qc.passed
     assert not qc.checks["minimum_shape_quality"]
+
+
+def test_regular_tetra_has_unit_scaled_jacobian() -> None:
+    points = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.5, np.sqrt(3.0) / 2.0, 0.0],
+            [0.5, np.sqrt(3.0) / 6.0, np.sqrt(2.0 / 3.0)],
+        ]
+    )
+    tetra = np.array([[0, 1, 2, 3]])
+    quality = tetra_scaled_jacobian_quality(points, tetra)
+    assert np.isclose(quality[0], 1.0)
+
+
+def test_distorted_tetra_has_lower_scaled_jacobian() -> None:
+    points = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.01, 0.01, 0.001],
+        ]
+    )
+    tetra = np.array([[0, 1, 2, 3]])
+    quality = tetra_scaled_jacobian_quality(points, tetra)
+    assert 0.0 <= quality[0] < 0.1
