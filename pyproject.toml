@@ -1,11 +1,16 @@
 [project]
 name = "virelion-cardianatomy"
-version = "0.2.0"
+version = "0.3.0"
 description = "Patient-specific cardiac anatomy, geometry, registration, microstructure, scar, and QC infrastructure for Virelion HeartTwin"
 requires-python = ">=3.10"
 license = {text = "AGPL-3.0-or-later"}
 authors = [{name = "Virelion Biotech"}]
 keywords = ["cardiac", "digital-twin", "cmr", "ct", "mesh", "anatomy", "segmentation"]
+
+[project.urls]
+Homepage = "https://github.com/Virelion-Biotech/Virelion-CardiAnatomy"
+Source = "https://github.com/Virelion-Biotech/Virelion-CardiAnatomy"
+Issues = "https://github.com/Virelion-Biotech/Virelion-CardiAnatomy/issues"
 dependencies = [
   "pydantic>=2.6,<3",
   "numpy>=1.26,<3",
