@@ -7,11 +7,15 @@ from typing import Any, Callable
 from .backends import StageOutput
 from .execution import run_command
 from .integrations import (
+    biv_me_command,
     biv_volumetric_command,
+    myomesh_command,
     nnunet_predict_command,
 )
+from .io import inspect_mesh_file
 from .models import AnatomyBundle, AnatomyRequest, ArtifactKind, ArtifactRef, StageName
 from .provenance import file_sha256
+from .qc import qc_from_inspection
 
 
 CommandFactory = Callable[[AnatomyRequest, Path, dict[str, Any]], list[str]]
@@ -177,3 +181,135 @@ def register_standard_external_stage_backends(service) -> None:
     service.register_stage_backend(nnunet_segmentation_backend())
     for stage in ("surface_mesh", "volume_mesh", "coordinates", "microstructure"):
         service.register_stage_backend(biv_volumetric_stage_backend(stage))
+
+
+def _declared_outputs(
+    request: AnatomyRequest,
+    output_specs: list[dict[str, Any]],
+    *,
+    producer: str,
+) -> list[ArtifactRef]:
+    artifacts: list[ArtifactRef] = []
+    for index, spec in enumerate(output_specs):
+        if not isinstance(spec, dict):
+            raise ValueError(f"outputs[{index}] must be an object")
+        for key in ("artifact_id", "kind", "path"):
+            if not spec.get(key):
+                raise ValueError(f"outputs[{index}] requires {key}")
+        path = Path(str(spec["path"]))
+        artifacts.append(
+            _artifact_from_output(
+                request=request,
+                path=path,
+                artifact_id=str(spec["artifact_id"]),
+                kind=spec["kind"],
+                producer=producer,
+                derived_from=[request.acquisition.source.artifact_id],
+                frame_id=spec.get("frame_id"),
+                metadata=dict(spec.get("metadata") or {}),
+            )
+        )
+    return artifacts
+
+
+def _geometry_qc_from_outputs(artifacts: list[ArtifactRef]):
+    for artifact in reversed(artifacts):
+        if artifact.kind not in {"volume_mesh", "surface_mesh"}:
+            continue
+        path = Path(artifact.uri)
+        if path.is_file():
+            return qc_from_inspection(
+                inspect_mesh_file(path),
+                require_watertight=artifact.kind == "surface_mesh",
+            )
+    return None
+
+
+class BivMeBackend:
+    name = "biv-me"
+
+    def available(self) -> bool:
+        return True
+
+    def build(self, request: AnatomyRequest) -> AnatomyBundle:
+        parameters = request.parameters
+        for key in ("main_script", "config_file", "outputs"):
+            if key not in parameters:
+                raise ValueError(f"biv-me backend requires parameter {key}")
+        command = biv_me_command(
+            main_script=str(parameters["main_script"]),
+            config_file=str(parameters["config_file"]),
+            case_name=str(parameters.get("case_name", request.subject_id)),
+            python_executable=str(parameters.get("python_executable", "python")),
+        )
+        result = run_command(
+            command,
+            cwd=parameters.get("cwd"),
+            timeout=float(parameters.get("timeout", 7200.0)),
+        )
+        outputs = _declared_outputs(
+            request,
+            list(parameters["outputs"]),
+            producer="biv-me",
+        )
+        return AnatomyBundle(
+            subject_id=request.subject_id,
+            study_id=request.acquisition.study_id,
+            acquisition_id=request.acquisition.acquisition_id,
+            artifacts=[request.acquisition.source, *outputs],
+            qc=_geometry_qc_from_outputs(outputs),
+            provenance={
+                "backend": "biv-me",
+                "command": list(result.command),
+                "duration_seconds": result.duration_seconds,
+                "executable": result.executable,
+            },
+        )
+
+
+class MyoMeshBackend:
+    name = "myomesh"
+
+    def available(self) -> bool:
+        return True
+
+    def build(self, request: AnatomyRequest) -> AnatomyBundle:
+        parameters = request.parameters
+        for key in ("input_mat", "outputs"):
+            if key not in parameters:
+                raise ValueError(f"MyoMesh backend requires parameter {key}")
+        command = myomesh_command(
+            input_mat=str(parameters["input_mat"]),
+            python_executable=str(parameters.get("python_executable", "python")),
+            no_alg=bool(parameters.get("no_alg", False)),
+            no_align_dicom=bool(parameters.get("no_align_dicom", False)),
+            extra_args=tuple(str(item) for item in parameters.get("extra_args", [])),
+        )
+        result = run_command(
+            command,
+            cwd=parameters.get("cwd"),
+            timeout=float(parameters.get("timeout", 7200.0)),
+        )
+        outputs = _declared_outputs(
+            request,
+            list(parameters["outputs"]),
+            producer="myomesh",
+        )
+        return AnatomyBundle(
+            subject_id=request.subject_id,
+            study_id=request.acquisition.study_id,
+            acquisition_id=request.acquisition.acquisition_id,
+            artifacts=[request.acquisition.source, *outputs],
+            qc=_geometry_qc_from_outputs(outputs),
+            provenance={
+                "backend": "myomesh",
+                "command": list(result.command),
+                "duration_seconds": result.duration_seconds,
+                "executable": result.executable,
+            },
+        )
+
+
+def register_standard_monolithic_backends(service) -> None:
+    service.register_backend(BivMeBackend())
+    service.register_backend(MyoMeshBackend())
