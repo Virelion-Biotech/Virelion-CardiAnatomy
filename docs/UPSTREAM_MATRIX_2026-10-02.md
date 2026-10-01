@@ -1,6 +1,6 @@
 # Upstream cardiac-anatomy matrix — 2 October 2026
 
-This matrix records the projects reviewed while expanding CardiAnatomy 0.3.0. It is an engineering synthesis, not a claim of source-code reuse. CardiAnatomy's core remains Virelion-authored unless a file explicitly says otherwise.
+This matrix records the projects reviewed while expanding CardiAnatomy 0.4.0. It is an engineering synthesis, not a claim of source-code reuse. CardiAnatomy's core remains Virelion-authored unless a file explicitly says otherwise.
 
 | Project | Strongest idea | CardiAnatomy response | License/deployment stance |
 |---|---|---|---|
