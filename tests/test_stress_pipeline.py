@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+import threading
 
 import pytest
 
@@ -64,6 +65,36 @@ class DuplicateOutputBackend:
                     kind="segmentation",
                     uri="https://example.invalid/two",
                 ),
+            ]
+        )
+
+
+class BlockingBackend:
+    name = "blocking"
+    stage = "segmentation"
+
+    def __init__(self) -> None:
+        self.started = threading.Event()
+        self.release = threading.Event()
+
+    def available(self) -> bool:
+        return True
+
+    def run(self, request, bundle, workdir: Path, parameters):
+        self.started.set()
+        if not self.release.wait(timeout=10):
+            raise RuntimeError("stress test release timeout")
+        path = workdir / "blocking.nii.gz"
+        path.write_bytes(b"blocking")
+        return StageOutput(
+            artifacts=[
+                ArtifactRef(
+                    artifact_id="blocking-seg",
+                    kind="segmentation",
+                    uri=str(path),
+                    sha256=file_sha256(path),
+                    size_bytes=path.stat().st_size,
+                )
             ]
         )
 
@@ -263,3 +294,35 @@ def test_stage_fingerprint_changes_with_artifact_digest() -> None:
         [changed],
         {},
     )
+
+
+def test_concurrent_same_workdir_fails_fast_instead_of_racing(
+    tmp_path: Path,
+) -> None:
+    executor = PipelineExecutor()
+    backend = BlockingBackend()
+    executor.register(backend)
+    request = _request(tmp_path)
+    plan = _plan(backend.name)
+
+    errors: list[Exception] = []
+
+    def first_run() -> None:
+        try:
+            executor.execute(request, plan)
+        except Exception as exc:  # pragma: no cover - surfaced below
+            errors.append(exc)
+
+    thread = threading.Thread(target=first_run)
+    thread.start()
+    assert backend.started.wait(timeout=5)
+
+    try:
+        with pytest.raises(RuntimeError, match="Another CardiAnatomy pipeline"):
+            executor.execute(request, plan)
+    finally:
+        backend.release.set()
+        thread.join(timeout=10)
+
+    assert not thread.is_alive()
+    assert not errors
