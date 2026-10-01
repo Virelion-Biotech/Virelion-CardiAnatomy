@@ -31,6 +31,7 @@ from .segmentation import segmentation_qc
 from .series import rank_series_for_cine
 from .service import CardiAnatomyService
 from .transforms import compose_affines, invert_affine, validate_affine
+from .validation import point_set_distance_summary, segmentation_overlap_metrics
 
 
 class AnatomyAPI:
@@ -54,6 +55,8 @@ class AnatomyAPI:
         "anatomy.transforms.invert",
         "anatomy.correspondence.compare",
         "anatomy.motion.summarize",
+        "anatomy.validation.segmentation",
+        "anatomy.validation.points",
     )
 
     def __init__(self, service: CardiAnatomyService | None = None) -> None:
@@ -313,6 +316,46 @@ class AnatomyAPI:
         if bool(payload.get("cyclic", False)):
             output["cyclic_closure_error"] = cyclic_closure_error(frames)
         return output
+
+    def validation_segmentation(self, payload: dict[str, Any]) -> dict[str, Any]:
+        requested = payload.get("labels")
+        metrics = segmentation_overlap_metrics(
+            np.asarray(payload["reference_labels"]),
+            np.asarray(payload["prediction_labels"]),
+            labels=(
+                None
+                if requested is None
+                else {int(value) for value in requested}
+            ),
+            background_label=(
+                None
+                if payload.get("background_label", 0) is None
+                else int(payload.get("background_label", 0))
+            ),
+        )
+        return {
+            "metrics": {str(label): values for label, values in metrics.items()},
+            "validation_status": "reference_dependent",
+        }
+
+    def validation_points(self, payload: dict[str, Any]) -> dict[str, Any]:
+        result = point_set_distance_summary(
+            np.asarray(payload["reference_points"], dtype=float),
+            np.asarray(payload["prediction_points"], dtype=float),
+            block_size=int(payload.get("block_size", 1024)),
+        )
+        return {
+            "reference_to_prediction_mean": result.reference_to_prediction_mean,
+            "prediction_to_reference_mean": result.prediction_to_reference_mean,
+            "symmetric_mean": result.symmetric_mean,
+            "symmetric_rms": result.symmetric_rms,
+            "hd95": result.hd95,
+            "hausdorff": result.hausdorff,
+            "reference_point_count": result.reference_point_count,
+            "prediction_point_count": result.prediction_point_count,
+            "units": str(payload.get("units", "input_coordinate_units")),
+            "validation_status": "reference_dependent_point_set_metric",
+        }
 
     @staticmethod
     def qc(inspection) -> dict[str, Any]:
