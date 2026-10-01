@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+
+import numpy as np
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
@@ -22,7 +24,11 @@ class CommandResult:
 
 
 def executable_available(executable: str) -> bool:
-    return shutil.which(executable) is not None or Path(executable).is_file()
+    resolved = shutil.which(executable)
+    if resolved is not None:
+        return True
+    path = Path(executable)
+    return path.is_file() and os.access(path, os.X_OK)
 
 
 def run_command(
@@ -34,10 +40,16 @@ def run_command(
 ) -> CommandResult:
     if not command:
         raise ValueError("command must not be empty")
+    if not np.isfinite(timeout) or timeout <= 0:
+        raise ValueError("timeout must be finite and strictly positive")
     argv = [str(item) for item in command]
     executable = shutil.which(argv[0])
-    if executable is None and not Path(argv[0]).is_file():
-        raise FileNotFoundError(f"Executable not found: {argv[0]}")
+    direct = Path(argv[0])
+    if executable is None:
+        if not direct.is_file():
+            raise FileNotFoundError(f"Executable not found: {argv[0]}")
+        if not os.access(direct, os.X_OK):
+            raise PermissionError(f"File is not executable: {argv[0]}")
     process_env = os.environ.copy()
     if env:
         process_env.update({str(key): str(value) for key, value in env.items()})
