@@ -41,3 +41,9 @@ jobs:
       - run: python -m build
       - run: python -m pip install dist/*.whl
       - run: cardianatomy tools
+      - run: cardianatomy presets
+      - run: cardianatomy cine-phases examples/volume_curve.json
+      - run: cardianatomy compose-affines examples/affine_chain.json
+      - run: cardianatomy compare-correspondence examples/correspondence_payload.json
+      - run: cardianatomy summarize-motion examples/motion_payload.json
+      - run: cardianatomy audit-manifest examples/toolchain_manifest.json
