@@ -43,6 +43,12 @@ def main() -> int:
     inspect_mesh = sub.add_parser("inspect-mesh", help="Inspect VTK/VTU/Gmsh/etc via meshio")
     inspect_mesh.add_argument("path")
     inspect_mesh.add_argument("--require-watertight", action="store_true")
+    inspect_mesh.add_argument(
+        "--minimum-shape-quality",
+        type=float,
+        default=None,
+        help="Optional normalized minimum cell-shape quality in [0, 1]",
+    )
 
     inspect_dicom = sub.add_parser(
         "inspect-dicom", help="Inspect DICOM geometry metadata without PHI"
@@ -93,7 +99,11 @@ def main() -> int:
         return 0
     if args.command == "inspect-mesh":
         inspection = inspect_mesh_file(args.path)
-        qc = qc_from_inspection(inspection, require_watertight=args.require_watertight)
+        qc = qc_from_inspection(
+            inspection,
+            require_watertight=args.require_watertight,
+            minimum_shape_quality=args.minimum_shape_quality,
+        )
         _write_json(
             {
                 "inspection": inspection.model_dump(mode="json"),
