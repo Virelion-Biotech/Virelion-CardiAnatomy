@@ -122,7 +122,11 @@ class ImagingAcquisition(BaseModel):
 class DicomSeriesSummary(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    series_uid_sha256: str
+    series_uid_sha256: str = Field(
+        min_length=64,
+        max_length=64,
+        pattern=r"^[0-9a-fA-F]{64}$",
+    )
     modality: str | None = None
     description: str | None = None
     file_count: int = Field(ge=1)
@@ -133,6 +137,23 @@ class DicomSeriesSummary(BaseModel):
     temporal_positions: int | None = Field(default=None, ge=1)
     image_orientation_patient: tuple[float, ...] | None = None
     warnings: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_dicom_geometry(self) -> "DicomSeriesSummary":
+        if self.pixel_spacing_mm is not None:
+            spacing = np.asarray(self.pixel_spacing_mm, dtype=float)
+            if not np.all(np.isfinite(spacing)) or np.any(spacing <= 0):
+                raise ValueError("pixel_spacing_mm must be finite and positive")
+        if self.image_orientation_patient is not None:
+            orientation = np.asarray(
+                self.image_orientation_patient,
+                dtype=float,
+            )
+            if len(orientation) != 6 or not np.all(np.isfinite(orientation)):
+                raise ValueError(
+                    "image_orientation_patient must contain six finite values"
+                )
+        return self
 
 
 class CoordinateFrame(BaseModel):
