@@ -61,8 +61,15 @@ def summarize_mesh_sequence(
 def cyclic_closure_error(frames: np.ndarray) -> dict[str, float]:
     """Measure first/last-phase mismatch for a nominally cyclic mesh sequence."""
     values = np.asarray(frames, dtype=float)
-    if values.ndim != 3 or values.shape[2] != 3 or values.shape[0] < 2:
-        raise ValueError("frames must have shape (T, N, 3) with T >= 2")
+    if (
+        values.ndim != 3
+        or values.shape[2] != 3
+        or values.shape[0] < 2
+        or values.shape[1] < 1
+    ):
+        raise ValueError("frames must have shape (T, N, 3) with T >= 2 and N >= 1")
+    if not np.all(np.isfinite(values)):
+        raise ValueError("mesh sequence coordinates must be finite")
     mismatch = np.linalg.norm(values[-1] - values[0], axis=1)
     return {
         "mean": float(np.mean(mismatch)),
