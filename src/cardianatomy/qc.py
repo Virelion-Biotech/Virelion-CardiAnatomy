@@ -38,7 +38,10 @@ def tetra_signed_volumes(points: np.ndarray, tetrahedra: np.ndarray) -> np.ndarr
     tetrahedra = _validate_cells(tetrahedra, 4, len(points), "tetrahedra")
     _require_finite_points(points)
     p0, p1, p2, p3 = (points[tetrahedra[:, i]] for i in range(4))
-    return np.einsum("ij,ij->i", np.cross(p1 - p0, p2 - p0), p3 - p0) / 6.0
+    with np.errstate(over="ignore", invalid="ignore"):
+        cross = np.cross(p1 - p0, p2 - p0)
+        volumes = np.einsum("ij,ij->i", cross, p3 - p0) / 6.0
+    return volumes
 
 def tetra_mean_ratio_quality(points: np.ndarray, tetrahedra: np.ndarray) -> np.ndarray:
     """Return normalized tetrahedral mean-ratio quality in [0, 1]."""
@@ -46,6 +49,8 @@ def tetra_mean_ratio_quality(points: np.ndarray, tetrahedra: np.ndarray) -> np.n
     tetrahedra = _validate_cells(tetrahedra, 4, len(points), "tetrahedra")
     _require_finite_points(points)
     volumes = np.abs(tetra_signed_volumes(points, tetrahedra))
+    if not np.all(np.isfinite(volumes)):
+        raise OverflowError("tetrahedral quality computation exceeds float64 range")
     edge_pairs = ((0, 1), (0, 2), (0, 3), (1, 2), (1, 3), (2, 3))
     edge_sq_sum = np.zeros(len(tetrahedra), dtype=float)
     for i, j in edge_pairs:
@@ -82,14 +87,19 @@ def tetra_scaled_jacobian_quality(
         e1 = points[tetrahedra[:, first]] - p0
         e2 = points[tetrahedra[:, second]] - p0
         e3 = points[tetrahedra[:, third]] - p0
-        determinant = np.abs(
-            np.einsum("ij,ij->i", np.cross(e1, e2), e3)
-        )
+        with np.errstate(over="ignore", invalid="ignore"):
+            determinant = np.abs(
+                np.einsum("ij,ij->i", np.cross(e1, e2), e3)
+            )
         denominator = (
             np.linalg.norm(e1, axis=1)
             * np.linalg.norm(e2, axis=1)
             * np.linalg.norm(e3, axis=1)
         )
+        if not np.all(np.isfinite(determinant)):
+            raise OverflowError(
+                "scaled-Jacobian computation exceeds float64 range"
+            )
         scaled = np.divide(
             np.sqrt(2.0) * determinant,
             denominator,
@@ -108,7 +118,14 @@ def triangle_shape_quality(points: np.ndarray, triangles: np.ndarray) -> np.ndar
     triangles = _validate_cells(triangles, 3, len(points), "triangles")
     _require_finite_points(points)
     a, b, c = (points[triangles[:, i]] for i in range(3))
-    area = np.linalg.norm(np.cross(b - a, c - a), axis=1) / 2.0
+    with np.errstate(over="ignore", invalid="ignore"):
+        cross = np.cross(b - a, c - a)
+    if not np.all(np.isfinite(cross)):
+        raise OverflowError("triangle quality computation exceeds float64 range")
+    area = np.hypot(
+        np.hypot(cross[:, 0], cross[:, 1]),
+        cross[:, 2],
+    ) / 2.0
     edge_sq_sum = (
         np.sum((a - b) ** 2, axis=1)
         + np.sum((b - c) ** 2, axis=1)
@@ -144,7 +161,14 @@ def _edge_lengths(points: np.ndarray, cells: np.ndarray) -> np.ndarray:
     if not pairs:
         return np.array([], dtype=float)
     edges = np.asarray(sorted(pairs), dtype=int)
-    return np.linalg.norm(points[edges[:, 0]] - points[edges[:, 1]], axis=1)
+    with np.errstate(over="ignore", invalid="ignore"):
+        delta = points[edges[:, 0]] - points[edges[:, 1]]
+    if not np.all(np.isfinite(delta)):
+        return np.full(len(edges), np.inf, dtype=float)
+    return np.hypot(
+        np.hypot(delta[:, 0], delta[:, 1]),
+        delta[:, 2],
+    )
 
 
 def _connected_components(node_count: int, cells: np.ndarray) -> int:
@@ -186,6 +210,14 @@ def inspect_tetra_mesh(points: np.ndarray, tetrahedra: np.ndarray) -> MeshInspec
         )
     volumes = tetra_signed_volumes(points, tetrahedra)
     finite = bool(np.all(np.isfinite(volumes)))
+    if not finite:
+        return MeshInspection(
+            point_count=len(points),
+            cell_count=len(tetrahedra),
+            tetra_count=len(tetrahedra),
+            connected_components=_connected_components(len(points), tetrahedra),
+            finite=False,
+        )
     abs_volumes = np.abs(volumes)
     scale = float(np.max(abs_volumes)) if len(abs_volumes) else 0.0
     tolerance = np.finfo(float).eps * scale * 100.0
@@ -231,7 +263,20 @@ def inspect_triangle_surface(points: np.ndarray, triangles: np.ndarray) -> MeshI
             finite=False,
         )
     a, b, c = (points[triangles[:, i]] for i in range(3))
-    areas = np.linalg.norm(np.cross(b - a, c - a), axis=1) / 2.0
+    with np.errstate(over="ignore", invalid="ignore"):
+        cross = np.cross(b - a, c - a)
+    if not np.all(np.isfinite(cross)):
+        return MeshInspection(
+            point_count=len(points),
+            cell_count=len(triangles),
+            triangle_count=len(triangles),
+            connected_components=_connected_components(len(points), triangles),
+            finite=False,
+        )
+    areas = np.hypot(
+        np.hypot(cross[:, 0], cross[:, 1]),
+        cross[:, 2],
+    ) / 2.0
     scale = float(np.max(areas)) if len(areas) else 0.0
     tolerance = np.finfo(float).eps * scale * 100.0
     degenerate = areas <= tolerance
