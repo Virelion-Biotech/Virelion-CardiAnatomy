@@ -55,6 +55,8 @@ flowchart LR
 - **Solver-neutral geometry measurements** including surface area, tetrahedral volume, oriented closed-surface volume, bounds, and scale metrics.
 - **Segmentation QC and label-volume utilities** with canonical cardiac structure naming.
 - **Metadata-only cine series triage** for SAX/2CH/3CH/4CH hints, explicitly labeled heuristic rather than validated view classification.
+- **Segmentation-derived cine volume curves and ED/ES phase selection** with stroke-volume/ejection-fraction summaries and minimum dynamic-range safeguards.
+- **Validated affine composition/inversion primitives** for explicit coordinate-frame chains and round-trip checks.
 - **Explicit scar/border/core threshold application** without pretending to estimate clinically valid LGE thresholds.
 - **License-aware toolchain manifests** that track model weights, atlases, executables, versions, hashes, and deployment policy.
 - **Native ingest, geometry-QC, and export stages** plus resumable stage sidecars that restore output artifacts and QC correctly.
@@ -103,6 +105,9 @@ cardianatomy validate anatomy-bundle.json --target ep
 cardianatomy report anatomy-bundle.json anatomy-report.html
 cardianatomy register-rigid source-landmarks.json target-landmarks.json
 cardianatomy audit-manifest toolchain.json
+cardianatomy cine-phases chamber-volumes.json
+cardianatomy compose-affines affine-chain.json
+cardianatomy invert-affine affine.json
 ```
 
 ## Readiness is not one boolean
@@ -157,6 +162,9 @@ CardiAnatomy advertises:
 - `anatomy.manifest.audit`
 - `anatomy.series.rank`
 - `anatomy.segmentation.qc`
+- `anatomy.cine.phases`
+- `anatomy.transforms.compose`
+- `anatomy.transforms.invert`
 
 HeartTwin should persist the returned `AnatomyBundle` as a typed artifact and enforce the correct downstream readiness gate before calling CardiEP, CardiMech, or CardiFlow.
 
