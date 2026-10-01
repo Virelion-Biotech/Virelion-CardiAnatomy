@@ -1,17 +1,29 @@
 [project]
 name = "virelion-cardianatomy"
-version = "0.1.0"
-description = "Patient-specific cardiac anatomy contracts and geometry orchestration for the Virelion HeartTwin stack"
+version = "0.2.0"
+description = "Patient-specific cardiac anatomy, geometry, registration, microstructure, scar, and QC infrastructure for Virelion HeartTwin"
 requires-python = ">=3.10"
 license = {text = "AGPL-3.0-or-later"}
+authors = [{name = "Virelion Biotech"}]
+keywords = ["cardiac", "digital-twin", "cmr", "ct", "mesh", "anatomy", "segmentation"]
 dependencies = [
   "pydantic>=2.6,<3",
+  "numpy>=1.26,<3",
 ]
 
 [project.optional-dependencies]
+io = [
+  "pydicom>=2.4,<4",
+  "nibabel>=5.2,<6",
+  "meshio>=5.3,<6",
+]
 dev = [
   "pytest>=8",
   "ruff>=0.6",
+  "jsonschema>=4.23",
+  "pydicom>=2.4,<4",
+  "nibabel>=5.2,<6",
+  "meshio>=5.3,<6",
 ]
 
 [project.scripts]
@@ -26,6 +38,9 @@ where = ["src"]
 
 [tool.ruff]
 line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
