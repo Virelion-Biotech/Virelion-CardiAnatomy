@@ -1,8 +1,8 @@
 # Third-party notices and architectural influences
 
-CardiAnatomy v0.3.0 was designed after reviewing open cardiac anatomy, segmentation, meshing, coordinate, and microstructure projects. The core implementation in this repository is Virelion-authored unless a future file explicitly states otherwise.
+CardiAnatomy v0.4.0 was designed after reviewing open cardiac anatomy, segmentation, meshing, coordinate, and microstructure projects. The core implementation in this repository is Virelion-authored unless a future file explicitly states otherwise.
 
-No source code from the projects below is copied into the v0.3.0 core package. Their algorithms, interfaces, data-flow patterns, and publications informed the architecture.
+No source code from the projects below is copied into the v0.4.0 core package. Their algorithms, interfaces, data-flow patterns, and publications informed the architecture.
 
 | Project | Repository / site | License observed during review | CardiAnatomy use |
 |---|---|---|---|
@@ -42,6 +42,6 @@ See `docs/RESEARCH_SURVEY_2026-10-01.md` for the engineering synthesis.
 
 ## 2026-10-02 integration policy
 
-CardiAnatomy 0.3.0 adds command adapters and toolchain manifests but does not vendor source code from the upstream projects listed above. Permissively licensed tools are invoked through explicit adapters. Copyleft, restricted, or unresolved-license projects remain separate processes or architecture references unless their deployment terms are explicitly reviewed.
+CardiAnatomy 0.4.0 adds command adapters and toolchain manifests but does not vendor source code from the upstream projects listed above. Permissively licensed tools are invoked through explicit adapters. Copyleft, restricted, or unresolved-license projects remain separate processes or architecture references unless their deployment terms are explicitly reviewed.
 
 The license of a software repository does not automatically cover pretrained weights, atlases, statistical shape models, example clinical datasets, or other external assets. Those assets are tracked separately by `ToolchainManifest`.
