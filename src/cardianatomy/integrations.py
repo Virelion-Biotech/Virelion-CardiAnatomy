@@ -237,3 +237,62 @@ def ldrb_command(
 def geox_command(*args: str) -> list[str]:
     require_tool_policy("cardiac-geometriesx")
     return ["geox", *args]
+
+
+def biv_volumetric_command(
+    *,
+    run_script: str,
+    data_dir: str,
+    components: tuple[str, ...],
+    subject: str | None = None,
+    instance: int | None = None,
+    timeframe: int | None = None,
+    workspace_dir: str | None = None,
+    carp_bin_dir: str | None = None,
+    python_executable: str = "python",
+) -> list[str]:
+    require_tool_policy("biv-volumetric-meshing")
+    allowed = {
+        "segmentation": "--segmentation",
+        "contour": "--contour",
+        "surface": "--surface",
+        "volumetric": "--volumetric",
+        "uvc-fiber": "--uvc-fiber",
+        "all": "--all-components",
+    }
+    if not components:
+        raise ValueError("At least one BiV volumetric component is required")
+    unknown = set(components) - set(allowed)
+    if unknown:
+        raise ValueError(f"Unknown BiV volumetric components: {sorted(unknown)}")
+    command = [python_executable, run_script, "--data-dir", data_dir]
+    command.extend(allowed[item] for item in components)
+    if subject:
+        command += ["--subject", subject]
+    if instance is not None:
+        command += ["--instance", str(instance)]
+    if timeframe is not None:
+        command += ["--timeframe", str(timeframe)]
+    if workspace_dir:
+        command += ["--workspace-dir", workspace_dir]
+    if carp_bin_dir:
+        command += ["--carp-bin-dir", carp_bin_dir]
+    return command
+
+
+def myomesh_command(
+    *,
+    input_mat: str,
+    python_executable: str = "python",
+    no_alg: bool = False,
+    no_align_dicom: bool = False,
+    extra_args: tuple[str, ...] = (),
+) -> list[str]:
+    require_tool_policy("myomesh")
+    command = [python_executable, "execAll.py", "-i", input_mat]
+    if no_alg:
+        command.append("--no_alg")
+    if no_align_dicom:
+        command.append("--no_align_dicom")
+    command.extend(extra_args)
+    return command
