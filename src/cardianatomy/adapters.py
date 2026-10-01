@@ -6,12 +6,12 @@ import shutil
 from typing import Any, Callable
 
 from .backends import StageOutput
-from .execution import run_command
 from .integrations import (
     biv_me_command,
     biv_volumetric_command,
     myomesh_command,
     nnunet_predict_command,
+    run_command,
 )
 from .io import inspect_mesh_file
 from .models import AnatomyBundle, AnatomyRequest, ArtifactKind, ArtifactRef, StageName
