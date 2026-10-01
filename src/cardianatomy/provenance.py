@@ -8,7 +8,13 @@ from typing import Any
 
 def canonical_json(value: Any) -> str:
     """Serialize JSON-compatible content deterministically."""
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return json.dumps(
+        value,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+        allow_nan=False,
+    )
 
 
 def sha256(value: Any) -> str:
@@ -22,6 +28,8 @@ def sha256(value: Any) -> str:
 
 
 def file_sha256(path: str | Path, chunk_size: int = 1024 * 1024) -> str:
+    if isinstance(chunk_size, bool) or not isinstance(chunk_size, int) or chunk_size <= 0:
+        raise ValueError("chunk_size must be a positive integer")
     digest = hashlib.sha256()
     with Path(path).open("rb") as handle:
         while chunk := handle.read(chunk_size):
