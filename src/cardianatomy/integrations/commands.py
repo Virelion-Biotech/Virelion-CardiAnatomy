@@ -235,3 +235,99 @@ def ldrb_command(
 def geox_command(*args: str, executable: str = "geox") -> list[str]:
     require_tool_policy("cardiac_geometriesx")
     return [executable, *[str(item) for item in args]]
+
+
+def morphinet_inference_command(
+    *,
+    main_script: str | Path,
+    test_dataset: str,
+    template_mesh: str | Path,
+    checkpoint_dir: str | Path,
+    output_root: str | Path,
+    ct_data_dir: str | Path | None = None,
+    mr_data_dir: str | Path | None = None,
+    ct_json: str | Path | None = None,
+    mr_json: str | Path | None = None,
+    python_executable: str = "python",
+) -> list[str]:
+    require_tool_policy("morphinetv2")
+    allowed = {"acdc", "mmwhs", "cap", "scotheart"}
+    if test_dataset not in allowed:
+        raise ValueError(
+            f"test_dataset must be one of {sorted(allowed)}"
+        )
+    command = [
+        python_executable,
+        str(main_script),
+        "--inference_only",
+        "--mode",
+        "disabled",
+        "--test_dataset",
+        test_dataset,
+        "--template_mesh_dir",
+        str(template_mesh),
+        "--use_ckpt",
+        str(checkpoint_dir),
+        "--output_root",
+        str(output_root),
+    ]
+    optional = (
+        ("--ct_data_dir", ct_data_dir),
+        ("--mr_data_dir", mr_data_dir),
+        ("--ct_json_dir", ct_json),
+        ("--mr_json_dir", mr_json),
+    )
+    for flag, value in optional:
+        if value is not None:
+            command += [flag, str(value)]
+    return command
+
+
+def bipt_inference_command(
+    *,
+    infer_script: str | Path,
+    checkpoint: str | Path,
+    atlas_path: str | Path,
+    output_dir: str | Path,
+    spc: str | Path | None = None,
+    spc_dir: str | Path | None = None,
+    label_dim: int = 2,
+    which_output: str = "l2",
+    eval_cd: str = "none",
+    strict_arch: bool = True,
+    python_executable: str = "python",
+) -> list[str]:
+    require_tool_policy("bi-pt")
+    if (spc is None) == (spc_dir is None):
+        raise ValueError("Provide exactly one of spc or spc_dir")
+    if label_dim not in {2, 3}:
+        raise ValueError("label_dim must be 2 or 3")
+    if which_output not in {"l1", "l2", "both"}:
+        raise ValueError("which_output must be l1, l2, or both")
+    if eval_cd not in {"none", "plain", "label", "pair2", "both", "three"}:
+        raise ValueError("Unsupported Bi-PT eval_cd mode")
+
+    atlas_flag = "--atlas-path-2" if label_dim == 2 else "--atlas-path-3"
+    command = [
+        python_executable,
+        str(infer_script),
+        "--ckpt",
+        str(checkpoint),
+        atlas_flag,
+        str(atlas_path),
+        "--label-dim",
+        str(label_dim),
+        "--out-dir",
+        str(output_dir),
+        "--which-output",
+        which_output,
+        "--eval-cd",
+        eval_cd,
+    ]
+    if spc is not None:
+        command += ["--spc", str(spc)]
+    else:
+        command += ["--spc-dir", str(spc_dir)]
+    if strict_arch:
+        command.append("--strict-arch")
+    return command
