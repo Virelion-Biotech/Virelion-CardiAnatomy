@@ -4,6 +4,7 @@ from typing import Any
 
 import numpy as np
 
+from .cine import select_ed_es_from_segmentation, select_ed_es_from_volume_curve
 from .fibers import reference_rule_based_microstructure
 from .geometry import (
     bounding_box,
@@ -27,6 +28,7 @@ from .scar import classify_scalar_scar, scar_fractions
 from .segmentation import segmentation_qc
 from .series import rank_series_for_cine
 from .service import CardiAnatomyService
+from .transforms import compose_affines, invert_affine, validate_affine
 
 
 class AnatomyAPI:
@@ -45,6 +47,9 @@ class AnatomyAPI:
         "anatomy.manifest.audit",
         "anatomy.series.rank",
         "anatomy.segmentation.qc",
+        "anatomy.cine.phases",
+        "anatomy.transforms.compose",
+        "anatomy.transforms.invert",
     )
 
     def __init__(self, service: CardiAnatomyService | None = None) -> None:
@@ -201,6 +206,45 @@ class AnatomyAPI:
             required_labels=None if required is None else {int(x) for x in required},
             background_label=int(payload.get("background_label", 0)),
         )
+
+    def cine_phases(self, payload: dict[str, Any]) -> dict[str, Any]:
+        minimum = float(payload.get("minimum_dynamic_range_fraction", 0.02))
+        if "labels" in payload:
+            result = select_ed_es_from_segmentation(
+                np.asarray(payload["labels"]),
+                chamber_label=int(payload["chamber_label"]),
+                spacing_mm=tuple(float(x) for x in payload["spacing_mm"]),
+                phase_axis=int(payload.get("phase_axis", -1)),
+                minimum_dynamic_range_fraction=minimum,
+            )
+        else:
+            result = select_ed_es_from_volume_curve(
+                np.asarray(payload["volumes_ml"], dtype=float),
+                minimum_dynamic_range_fraction=minimum,
+            )
+        return {
+            "ed_phase": result.ed_phase,
+            "es_phase": result.es_phase,
+            "volumes_ml": list(result.volumes_ml),
+            "stroke_volume_ml": result.stroke_volume_ml,
+            "ejection_fraction": result.ejection_fraction,
+            "dynamic_range_fraction": result.dynamic_range_fraction,
+            "validation_status": "segmentation_derived_only",
+        }
+
+    def transforms_compose(self, payload: dict[str, Any]) -> dict[str, Any]:
+        matrices = [
+            np.asarray(item, dtype=float)
+            for item in payload.get("matrices", [])
+        ]
+        matrix = compose_affines(*matrices)
+        return {"matrix": matrix.tolist()}
+
+    def transforms_invert(self, payload: dict[str, Any]) -> dict[str, Any]:
+        matrix = invert_affine(
+            validate_affine(np.asarray(payload["matrix"], dtype=float))
+        )
+        return {"matrix": matrix.tolist()}
 
     @staticmethod
     def qc(inspection) -> dict[str, Any]:
