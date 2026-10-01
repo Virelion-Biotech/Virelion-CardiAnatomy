@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .integrations import tool_spec
 from .provenance import sha256
@@ -16,7 +16,12 @@ class ExternalAsset(BaseModel):
     kind: str
     source: str
     version: str | None = None
-    sha256: str | None = None
+    sha256: str | None = Field(
+        default=None,
+        min_length=64,
+        max_length=64,
+        pattern=r"^[0-9a-fA-F]{64}$",
+    )
     license_name: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -41,7 +46,42 @@ class ToolchainManifest(BaseModel):
     tools: list[ToolchainEntry] = Field(default_factory=list)
     assets: list[ExternalAsset] = Field(default_factory=list)
     environment: dict[str, str] = Field(default_factory=dict)
-    manifest_sha256: str | None = None
+    manifest_sha256: str | None = Field(
+        default=None,
+        min_length=64,
+        max_length=64,
+        pattern=r"^[0-9a-fA-F]{64}$",
+    )
+
+    @model_validator(mode="after")
+    def validate_manifest_integrity(self) -> "ToolchainManifest":
+        tool_ids = [item.tool_id for item in self.tools]
+        if len(tool_ids) != len(set(tool_ids)):
+            raise ValueError("toolchain manifest contains duplicate tool_id values")
+        asset_ids = [item.asset_id for item in self.assets]
+        if len(asset_ids) != len(set(asset_ids)):
+            raise ValueError("toolchain manifest contains duplicate asset_id values")
+        sensitive_tokens = (
+            "token",
+            "password",
+            "passwd",
+            "secret",
+            "api_key",
+            "apikey",
+            "credential",
+            "authorization",
+        )
+        sensitive = sorted(
+            key
+            for key in self.environment
+            if any(token in key.lower() for token in sensitive_tokens)
+        )
+        if sensitive:
+            raise ValueError(
+                "toolchain manifest environment must not store credentials: "
+                + ", ".join(sensitive)
+            )
+        return self
 
     def finalized(self) -> "ToolchainManifest":
         payload = self.model_dump(
