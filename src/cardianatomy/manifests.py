@@ -81,6 +81,14 @@ class ToolchainManifest(BaseModel):
                 "toolchain manifest environment must not store credentials: "
                 + ", ".join(sensitive)
             )
+        if self.manifest_sha256 is not None:
+            payload = self.model_dump(
+                mode="json",
+                exclude={"manifest_sha256", "created_at"},
+            )
+            expected = sha256(payload)
+            if self.manifest_sha256.lower() != expected:
+                raise ValueError("toolchain manifest SHA-256 does not match its contents")
         return self
 
     def finalized(self) -> "ToolchainManifest":
