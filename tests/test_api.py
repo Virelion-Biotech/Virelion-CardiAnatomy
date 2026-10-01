@@ -72,3 +72,31 @@ def test_transform_api_composes_and_inverts() -> None:
     assert inverse[0][3] == -2.0
     assert inverse[1][3] == 1.0
     assert inverse[2][3] == -3.0
+
+
+def test_correspondence_api_reports_connectivity() -> None:
+    result = AnatomyAPI().correspondence_compare(
+        {
+            "reference_points": [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
+            "target_points": [[1, 0, 0], [2, 0, 0], [1, 1, 0]],
+            "reference_cells": [[0, 1, 2]],
+            "target_cells": [[0, 1, 2]],
+        }
+    )
+    assert result["connectivity_identical"] is True
+    assert result["validation_status"] == "index_correspondence_assumed"
+
+
+def test_motion_api_reports_cyclic_closure() -> None:
+    result = AnatomyAPI().motion_summarize(
+        {
+            "frames": [
+                [[0, 0, 0], [1, 0, 0]],
+                [[0.5, 0, 0], [1.5, 0, 0]],
+                [[0, 0, 0], [1, 0, 0]],
+            ],
+            "cyclic": True,
+        }
+    )
+    assert result["phase_count"] == 3
+    assert result["cyclic_closure_error"]["max"] == 0.0
