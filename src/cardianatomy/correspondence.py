@@ -19,12 +19,30 @@ class CorrespondenceSummary:
     target_centroid: tuple[float, float, float]
 
 
-def connectivity_fingerprint(cells: np.ndarray) -> str:
-    values = np.asarray(cells, dtype=np.int64)
+def _validated_cells(
+    cells: np.ndarray,
+    *,
+    point_count: int | None = None,
+    name: str = "cells",
+) -> np.ndarray:
+    raw = np.asarray(cells)
+    if not np.issubdtype(raw.dtype, np.integer):
+        if not np.issubdtype(raw.dtype, np.number):
+            raise ValueError(f"{name} must contain integer indices")
+        if not np.all(np.isfinite(raw)) or not np.all(raw == np.floor(raw)):
+            raise ValueError(f"{name} must contain finite integer indices")
+    values = raw.astype(np.int64, copy=False)
     if values.ndim != 2 or values.shape[1] not in {3, 4}:
-        raise ValueError("cells must have shape (M, 3) or (M, 4)")
+        raise ValueError(f"{name} must have shape (M, 3) or (M, 4)")
     if np.any(values < 0):
-        raise ValueError("cell indices must be non-negative")
+        raise ValueError(f"{name} indices must be non-negative")
+    if point_count is not None and values.size and np.max(values) >= point_count:
+        raise ValueError(f"{name} contain out-of-range point indices")
+    return values
+
+
+def connectivity_fingerprint(cells: np.ndarray) -> str:
+    values = _validated_cells(cells)
     digest = hashlib.sha256()
     digest.update(str(values.shape).encode("ascii"))
     digest.update(np.ascontiguousarray(values).tobytes())
@@ -55,8 +73,16 @@ def compare_corresponding_meshes(
             "reference_cells and target_cells must either both be provided or omitted"
         )
     if reference_cells is not None and target_cells is not None:
-        ref_cells = np.asarray(reference_cells, dtype=np.int64)
-        tgt_cells = np.asarray(target_cells, dtype=np.int64)
+        ref_cells = _validated_cells(
+            reference_cells,
+            point_count=len(reference),
+            name="reference_cells",
+        )
+        tgt_cells = _validated_cells(
+            target_cells,
+            point_count=len(target),
+            name="target_cells",
+        )
         connectivity_identical = bool(
             ref_cells.shape == tgt_cells.shape
             and np.array_equal(ref_cells, tgt_cells)
@@ -81,7 +107,15 @@ def transfer_point_data_by_index(
     source_index_for_target: np.ndarray,
 ) -> np.ndarray:
     values = np.asarray(source_values)
-    index = np.asarray(source_index_for_target, dtype=np.int64)
+    raw_index = np.asarray(source_index_for_target)
+    if not np.issubdtype(raw_index.dtype, np.integer):
+        if (
+            not np.issubdtype(raw_index.dtype, np.number)
+            or not np.all(np.isfinite(raw_index))
+            or not np.all(raw_index == np.floor(raw_index))
+        ):
+            raise ValueError("correspondence map must contain finite integer indices")
+    index = raw_index.astype(np.int64, copy=False)
     if index.ndim != 1:
         raise ValueError("source_index_for_target must be one-dimensional")
     if np.any(index < 0) or np.any(index >= len(values)):
