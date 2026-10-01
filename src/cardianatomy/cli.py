@@ -27,6 +27,7 @@ def main() -> int:
 
     sub.add_parser("doctor", help="Report package, tool catalog, and backend availability")
     sub.add_parser("tools", help="Show researched external tool/license catalog")
+    sub.add_parser("presets", help="Show canonical pipeline presets")
 
     validate = sub.add_parser("validate", help="Validate an AnatomyBundle JSON file")
     validate.add_argument("bundle")
@@ -57,6 +58,17 @@ def main() -> int:
     report.add_argument("bundle")
     report.add_argument("output")
 
+    register = sub.add_parser(
+        "register-rigid",
+        help="Estimate a rigid transform from paired landmark JSON arrays",
+    )
+    register.add_argument("source")
+    register.add_argument("target")
+
+    audit = sub.add_parser("audit-manifest", help="Audit an external toolchain manifest")
+    audit.add_argument("manifest")
+    audit.add_argument("--allow-restricted", action="store_true")
+
     args = parser.parse_args()
     api = AnatomyAPI(CardiAnatomyService())
 
@@ -67,6 +79,9 @@ def main() -> int:
         return 0
     if args.command == "tools":
         _write_json(api.tools())
+        return 0
+    if args.command == "presets":
+        _write_json(api.presets())
         return 0
     if args.command == "validate":
         bundle = AnatomyBundle.model_validate(_load_json(args.bundle))
@@ -96,5 +111,20 @@ def main() -> int:
         bundle = AnatomyBundle.model_validate(_load_json(args.bundle))
         Path(args.output).write_text(render_html_report(bundle), encoding="utf-8")
         _write_json({"output": args.output})
+        return 0
+    if args.command == "register-rigid":
+        _write_json(
+            api.registration_rigid(
+                {
+                    "source_points": _load_json(args.source),
+                    "target_points": _load_json(args.target),
+                }
+            )
+        )
+        return 0
+    if args.command == "audit-manifest":
+        payload = _load_json(args.manifest)
+        payload["allow_restricted"] = args.allow_restricted
+        _write_json(api.manifest_audit(payload))
         return 0
     return 2
