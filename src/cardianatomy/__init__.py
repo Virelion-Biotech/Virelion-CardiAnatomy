@@ -23,11 +23,13 @@ from .geometry import (
     triangle_surface_area,
 )
 from .integrations import (
+    bipt_inference_command,
     biv_me_command,
     biv_volumetric_command,
     geox_command,
     ldrb_command,
     meshtool_command,
+    morphinet_inference_command,
     myomesh_command,
     nnunet_predict_command,
     require_tool_policy,
@@ -143,6 +145,8 @@ __all__ = [
     "tool_catalog",
     "require_tool_policy",
     "nnunet_predict_command",
+    "bipt_inference_command",
+    "morphinet_inference_command",
     "biv_me_command",
     "biv_volumetric_command",
     "myomesh_command",
