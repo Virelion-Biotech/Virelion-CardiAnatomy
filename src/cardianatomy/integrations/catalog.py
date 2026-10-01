@@ -179,19 +179,73 @@ TOOLS: dict[str, ExternalToolDescriptor] = {
         tool_id="morphinetv2",
         project="MalikTeng/MorphiNetV2",
         url="https://github.com/MalikTeng/MorphiNetV2",
-        license_name="Code/model terms require deployment review",
-        license_class="unknown",
+        license_name="MIT",
+        license_class="permissive",
         purpose=("surface_reconstruction", "dense_correspondence"),
-        notes="Research backend candidate; review code and model-weight terms separately.",
+        notes=(
+            "Software is MIT licensed; pretrained weights and datasets still require "
+            "independent provenance/terms review."
+        ),
     ),
     "bi-pt": ExternalToolDescriptor(
         tool_id="bi-pt",
         project="Chenchuhui/Bi-PT",
         url="https://github.com/Chenchuhui/Bi-PT",
-        license_name="Code/model terms require deployment review",
+        license_name="MIT",
+        license_class="permissive",
+        purpose=(
+            "sparse_cmr",
+            "four_chamber_reconstruction",
+            "atlas_deformation",
+            "dense_correspondence",
+        ),
+        notes=(
+            "Software is MIT licensed; model weights/data require independent review "
+            "and the method remains an experimental reconstruction backend."
+        ),
+    ),
+    "heartvolmesh": ExternalToolDescriptor(
+        tool_id="heartvolmesh",
+        project="ccmim/HeartVolMesh",
+        url="https://github.com/ccmim/HeartVolMesh",
+        license_name="Apache-2.0",
+        license_class="permissive",
+        purpose=(
+            "cta",
+            "volume_mesh",
+            "dense_correspondence",
+            "template_deformation",
+        ),
+        notes=(
+            "Repository is Apache-2.0, but the project currently states that full "
+            "code/templates will be released after publication."
+        ),
+    ),
+    "meshheart": ExternalToolDescriptor(
+        tool_id="meshheart",
+        project="MengyunQ/MeshHeart",
+        url="https://github.com/MengyunQ/MeshHeart",
+        license_name="MIT",
+        license_class="permissive",
+        purpose=("mesh_sequence", "4d_mesh", "conditional_generation"),
+        notes=(
+            "Useful as a 3D+t representation reference. Generated anatomy remains "
+            "model-derived rather than patient measurement."
+        ),
+    ),
+    "tetheart": ExternalToolDescriptor(
+        tool_id="tetheart",
+        project="Scalsol/TetHeart",
+        url="https://github.com/Scalsol/TetHeart",
+        license_name="No repository license file observed during review",
         license_class="unknown",
-        purpose=("sparse_cmr", "four_chamber_reconstruction", "atlas_deformation"),
-        notes="Experimental backend candidate pending independent validation and license review.",
+        purpose=(
+            "sparse_cmr",
+            "4d_mesh",
+            "tetrahedral_mesh",
+            "motion_reconstruction",
+        ),
+        notes="Architecture reference only until repository license terms are explicit.",
     ),
 }
 
