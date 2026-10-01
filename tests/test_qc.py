@@ -1,6 +1,12 @@
 import numpy as np
 
-from cardianatomy import inspect_tetra_mesh, inspect_triangle_surface, qc_from_inspection
+from cardianatomy import (
+    inspect_tetra_mesh,
+    inspect_triangle_surface,
+    qc_from_inspection,
+    tetra_mean_ratio_quality,
+    triangle_shape_quality,
+)
 
 
 def test_clean_tetra_mesh_passes_reference_qc() -> None:
@@ -26,3 +32,46 @@ def test_open_surface_can_be_allowed_or_required_watertight() -> None:
     inspection = inspect_triangle_surface(points, triangles)
     assert qc_from_inspection(inspection).passed
     assert not qc_from_inspection(inspection, require_watertight=True).passed
+
+
+def test_regular_tetra_has_high_shape_quality() -> None:
+    points = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.5, np.sqrt(3.0) / 2.0, 0.0],
+            [0.5, np.sqrt(3.0) / 6.0, np.sqrt(2.0 / 3.0)],
+        ]
+    )
+    tetra = np.array([[0, 1, 2, 3]])
+    quality = tetra_mean_ratio_quality(points, tetra)
+    assert np.isclose(quality[0], 1.0)
+
+
+def test_equilateral_triangle_has_unit_shape_quality() -> None:
+    points = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.5, np.sqrt(3.0) / 2.0, 0.0],
+        ]
+    )
+    triangles = np.array([[0, 1, 2]])
+    quality = triangle_shape_quality(points, triangles)
+    assert np.isclose(quality[0], 1.0)
+
+
+def test_shape_quality_threshold_can_fail_distorted_tetra() -> None:
+    points = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.001, 0.001, 0.0001],
+        ]
+    )
+    tetra = np.array([[0, 1, 2, 3]])
+    inspection = inspect_tetra_mesh(points, tetra)
+    qc = qc_from_inspection(inspection, minimum_shape_quality=0.1)
+    assert not qc.passed
+    assert not qc.checks["minimum_shape_quality"]
