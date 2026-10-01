@@ -63,8 +63,8 @@ flowchart LR
 - **License-aware toolchain manifests** that track model weights, atlases, executables, versions, hashes, and deployment policy.
 - **Native ingest, geometry-QC, and export stages** plus resumable stage sidecars that restore output artifacts and QC correctly.
 - **Canonical pipeline presets** for cine-CMR biventricular construction, presegmented EP preparation, and mesh-QC workflows.
-- **License-aware external tool catalog** covering nnU-Net, biv-me, BiV volumetric meshing, cardiac-geometriesx, MyoMesh, Meshtool, LDRB, AugmentA, and openCARP.
-- **Safe subprocess command builders** for nnU-Net, biv-me, and Meshtool without shell interpolation.
+- **License-aware external tool catalog** spanning classical, statistical, whole-heart, and learned reconstruction stacks, including nnU-Net, biv-me, BiV volumetric meshing, MorphiNetV2, Bi-PT, HeartVolMesh, MeshHeart, TetHeart, cardiac-geometriesx, MyoMesh, Meshtool, AugmentA, atrialmtk, and openCARP.
+- **Safe subprocess command builders** for nnU-Net, biv-me, BiV volumetric meshing, MyoMesh, cardiac-geometriesx, fenicsx-ldrb, Meshtool, MorphiNetV2, and Bi-PT without shell interpolation.
 - **Self-contained HTML bundle reports**.
 - **Versioned JSON schemas** and schema-drift CI.
 
@@ -110,6 +110,8 @@ cardianatomy audit-manifest toolchain.json
 cardianatomy cine-phases chamber-volumes.json
 cardianatomy compose-affines affine-chain.json
 cardianatomy invert-affine affine.json
+cardianatomy compare-correspondence examples/correspondence_payload.json
+cardianatomy summarize-motion examples/motion_payload.json
 ```
 
 ## Readiness is not one boolean
