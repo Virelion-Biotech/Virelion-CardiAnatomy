@@ -1,6 +1,12 @@
 """Virelion CardiAnatomy public API."""
 
 from .api import AnatomyAPI
+from .cine import (
+    CinePhaseSelection,
+    chamber_volume_curve_ml,
+    select_ed_es_from_segmentation,
+    select_ed_es_from_volume_curve,
+)
 from .coordinates import apply_affine, lps_to_ras_matrix, ras_to_lps_matrix
 from .fibers import orthonormal_local_frame, reference_rule_based_microstructure
 from .geometry import (
@@ -70,6 +76,12 @@ from .scar import classify_scalar_scar, scar_fractions
 from .segmentation import label_counts, label_volumes_ml, segmentation_qc
 from .series import SeriesCandidate, classify_cine_series, rank_series_for_cine
 from .service import CardiAnatomyService, ReadinessError
+from .transforms import (
+    affine_round_trip_error,
+    compose_affines,
+    invert_affine,
+    validate_affine,
+)
 
 __all__ = [
     "AnatomyAPI",
@@ -145,6 +157,14 @@ __all__ = [
     "label_counts",
     "label_volumes_ml",
     "segmentation_qc",
+    "CinePhaseSelection",
+    "chamber_volume_curve_ml",
+    "select_ed_es_from_volume_curve",
+    "select_ed_es_from_segmentation",
+    "validate_affine",
+    "invert_affine",
+    "compose_affines",
+    "affine_round_trip_error",
 ]
 
 __version__ = "0.3.0"
