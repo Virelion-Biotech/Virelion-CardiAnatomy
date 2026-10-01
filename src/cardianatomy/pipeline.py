@@ -6,7 +6,15 @@ from pathlib import Path
 from time import perf_counter
 
 from .backends import AnatomyStageBackend, BackendUnavailable
-from .models import AnatomyBundle, AnatomyRequest, PipelinePlan, StageName, StageRecord
+from .models import (
+    AnatomyBundle,
+    AnatomyRequest,
+    ArtifactRef,
+    GeometryQC,
+    PipelinePlan,
+    StageName,
+    StageRecord,
+)
 from .provenance import file_sha256, sha256
 
 
@@ -97,12 +105,52 @@ class PipelineExecutor:
             sidecar = workdir / f"stage-{stage}.json"
             if plan.resume and sidecar.is_file():
                 previous = json.loads(sidecar.read_text(encoding="utf-8"))
-                if previous.get("fingerprint") == fingerprint and previous.get("status") == "ok":
-                    bundle.stages.append(StageRecord.model_validate(previous))
+                previous_record = previous.get("record")
+                if (
+                    isinstance(previous_record, dict)
+                    and previous_record.get("fingerprint") == fingerprint
+                    and previous_record.get("status") == "ok"
+                ):
+                    restored_artifacts = [
+                        ArtifactRef.model_validate(item)
+                        for item in previous.get("artifacts", [])
+                    ]
+                    bundle.artifacts.extend(restored_artifacts)
+                    if previous.get("qc") is not None:
+                        bundle.qc = GeometryQC.model_validate(previous["qc"])
+                    bundle.stages.append(StageRecord.model_validate(previous_record))
                     continue
             started = datetime.now(timezone.utc)
             tick = perf_counter()
-            output = backend.run(request, bundle, workdir, parameters)
+            try:
+                output = backend.run(request, bundle, workdir, parameters)
+            except Exception as exc:
+                finished = datetime.now(timezone.utc)
+                record = StageRecord(
+                    stage=stage,
+                    backend=backend_name,
+                    status="error",
+                    fingerprint=fingerprint,
+                    input_artifact_ids=[item.artifact_id for item in bundle.artifacts],
+                    parameters=parameters,
+                    started_at=started,
+                    finished_at=finished,
+                    duration_seconds=perf_counter() - tick,
+                    errors=[str(exc)],
+                )
+                bundle.stages.append(record)
+                sidecar.write_text(
+                    json.dumps(
+                        {
+                            "record": record.model_dump(mode="json"),
+                            "artifacts": [],
+                            "qc": None,
+                        },
+                        indent=2,
+                    ),
+                    encoding="utf-8",
+                )
+                raise
             finished = datetime.now(timezone.utc)
             record = StageRecord(
                 stage=stage,
@@ -122,7 +170,21 @@ class PipelineExecutor:
                 bundle.qc = output.qc
             bundle.stages.append(record)
             sidecar.write_text(
-                json.dumps(record.model_dump(mode="json"), indent=2),
+                json.dumps(
+                    {
+                        "record": record.model_dump(mode="json"),
+                        "artifacts": [
+                            item.model_dump(mode="json")
+                            for item in output.artifacts
+                        ],
+                        "qc": (
+                            None
+                            if output.qc is None
+                            else output.qc.model_dump(mode="json")
+                        ),
+                    },
+                    indent=2,
+                ),
                 encoding="utf-8",
             )
         bundle.bundle_fingerprint = bundle_fingerprint(bundle)
