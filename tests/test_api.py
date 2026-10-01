@@ -45,3 +45,30 @@ def test_manifest_audit_flags_unknown_license() -> None:
         }
     )
     assert not result["valid"]
+
+
+def test_cine_phase_api_from_volume_curve() -> None:
+    result = AnatomyAPI().cine_phases(
+        {"volumes_ml": [120.0, 95.0, 70.0, 85.0, 110.0]}
+    )
+    assert result["ed_phase"] == 0
+    assert result["es_phase"] == 2
+    assert result["validation_status"] == "segmentation_derived_only"
+
+
+def test_transform_api_composes_and_inverts() -> None:
+    translate = [
+        [1.0, 0.0, 0.0, 2.0],
+        [0.0, 1.0, 0.0, -1.0],
+        [0.0, 0.0, 1.0, 3.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ]
+    composed = AnatomyAPI().transforms_compose(
+        {"matrices": [translate]}
+    )["matrix"]
+    inverse = AnatomyAPI().transforms_invert(
+        {"matrix": composed}
+    )["matrix"]
+    assert inverse[0][3] == -2.0
+    assert inverse[1][3] == 1.0
+    assert inverse[2][3] == -3.0
