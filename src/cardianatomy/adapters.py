@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import shutil
 from typing import Any, Callable
 
 from .backends import StageOutput
@@ -63,9 +64,13 @@ class DeclaredCommandStageBackend:
     stage: StageName
     output_kind: ArtifactKind
     command_factory: CommandFactory
+    probe_executable: str | None = None
 
     def available(self) -> bool:
-        return True
+        return (
+            self.probe_executable is None
+            or shutil.which(self.probe_executable) is not None
+        )
 
     def run(
         self,
@@ -135,6 +140,7 @@ def nnunet_segmentation_backend() -> DeclaredCommandStageBackend:
         stage="segmentation",
         output_kind="segmentation",
         command_factory=build_command,
+        probe_executable="nnUNetv2_predict",
     )
 
 
@@ -174,6 +180,7 @@ def biv_volumetric_stage_backend(stage: StageName) -> DeclaredCommandStageBacken
         stage=stage,
         output_kind=output_kind,
         command_factory=build_command,
+        probe_executable="python",
     )
 
 
@@ -229,7 +236,7 @@ class BivMeBackend:
     name = "biv-me"
 
     def available(self) -> bool:
-        return True
+        return shutil.which("python") is not None
 
     def build(self, request: AnatomyRequest) -> AnatomyBundle:
         parameters = request.parameters
@@ -271,7 +278,7 @@ class MyoMeshBackend:
     name = "myomesh"
 
     def available(self) -> bool:
-        return True
+        return shutil.which("python") is not None
 
     def build(self, request: AnatomyRequest) -> AnatomyBundle:
         parameters = request.parameters
