@@ -63,7 +63,12 @@ def audit_manifest_licenses(
         except KeyError:
             problems.append(f"Unknown external tool: {entry.tool_id}")
             continue
-        if not spec.default_allowed and not allow_restricted:
+        if spec.license_class == "unknown":
+            problems.append(
+                f"{entry.tool_id}: license terms are unresolved "
+                f"({spec.license_name})"
+            )
+        elif not spec.default_allowed and not allow_restricted:
             problems.append(
                 f"{entry.tool_id}: deployment review required "
                 f"({spec.license_name})"
