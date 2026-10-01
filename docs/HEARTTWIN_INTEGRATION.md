@@ -1,20 +1,41 @@
 # HeartTwin integration
 
-CardiAnatomy should be exposed to HeartTwin as a native package before using HTTP transport.
+CardiAnatomy is a native HeartTwin service.
 
-Initial capabilities:
+## Capabilities
 
 - `anatomy.health`
 - `anatomy.build`
 - `anatomy.validate`
+- `anatomy.tools`
+- `anatomy.microstructure.reference`
+- `anatomy.scar.classify`
 
-HeartTwin should record the returned `AnatomyBundle` as a typed artifact and must not mark a geometry as personalization-ready unless `bundle.ready` is true.
+## Proposed registry entry
 
-Downstream ownership:
+```yaml
+- name: CardiAnatomy
+  repository: Virelion-Biotech/Virelion-CardiAnatomy
+  capabilities:
+    - anatomy.health
+    - anatomy.build
+    - anatomy.validate
+    - anatomy.tools
+    - anatomy.microstructure.reference
+    - anatomy.scar.classify
+  builtin: cardianatomy
+  endpoint: ${CARDIANATOMY_URL}
+```
 
-- CardiEP consumes mesh, fibers, scar, coordinates, and EAM/ECG registrations.
-- CardiMech consumes meshes, surfaces, microstructure, chamber labels, and pressure/volume registration.
-- CardiFlow consumes chamber/vascular geometry plus flow-domain boundary mappings.
-- CardiInfer consumes anatomy QC and transformation uncertainty as part of the inference context.
+## State boundary
 
-Large artifacts should remain external and be referenced by URI + digest rather than embedded in HeartTwin state.
+HeartTwin should persist a compact typed anatomy artifact containing the bundle identity, artifact references, frames/registrations, QC, readiness, and bundle fingerprint. Large VTK/NIfTI/DICOM/HDF5 data should remain external.
+
+## Downstream gates
+
+- CardiEP: require `ep` readiness for patient-specific execution.
+- CardiMech: require `mechanics` readiness.
+- CardiFlow: require `flow` readiness.
+- CardiInfer: consume geometry/registration uncertainty and bundle fingerprints as inference context.
+
+No downstream component should infer coordinate frames from filenames or directory conventions.
