@@ -51,7 +51,14 @@ flowchart LR
 - **MeshIO integration** for VTK/VTU/Gmsh/etc. inspection through an optional dependency.
 - **DICOM-LPS ↔ NIfTI-RAS transforms** and generic homogeneous point transforms.
 - **Reference rule-based myocardial microstructure utility** for already-computed local coordinates; explicitly not a validated LDRB replacement.
+- **Rigid paired-landmark registration** with residual diagnostics for explicit frame alignment.
+- **Solver-neutral geometry measurements** including surface area, tetrahedral volume, oriented closed-surface volume, bounds, and scale metrics.
+- **Segmentation QC and label-volume utilities** with canonical cardiac structure naming.
+- **Metadata-only cine series triage** for SAX/2CH/3CH/4CH hints, explicitly labeled heuristic rather than validated view classification.
 - **Explicit scar/border/core threshold application** without pretending to estimate clinically valid LGE thresholds.
+- **License-aware toolchain manifests** that track model weights, atlases, executables, versions, hashes, and deployment policy.
+- **Native ingest, geometry-QC, and export stages** plus resumable stage sidecars that restore output artifacts and QC correctly.
+- **Canonical pipeline presets** for cine-CMR biventricular construction, presegmented EP preparation, and mesh-QC workflows.
 - **License-aware external tool catalog** covering nnU-Net, biv-me, BiV volumetric meshing, cardiac-geometriesx, MyoMesh, Meshtool, LDRB, AugmentA, and openCARP.
 - **Safe subprocess command builders** for nnU-Net, biv-me, and Meshtool without shell interpolation.
 - **Self-contained HTML bundle reports**.
@@ -86,6 +93,7 @@ The base library intentionally does **not** pull GPU segmentation stacks, FEniCS
 ```bash
 cardianatomy doctor
 cardianatomy tools
+cardianatomy presets
 cardianatomy hash path/to/artifact.vtu
 cardianatomy inspect-dicom path/to/dicom_folder
 cardianatomy inspect-nifti image.nii.gz
@@ -93,6 +101,8 @@ cardianatomy inspect-mesh heart.vtu
 cardianatomy inspect-mesh closed_surface.vtk --require-watertight
 cardianatomy validate anatomy-bundle.json --target ep
 cardianatomy report anatomy-bundle.json anatomy-report.html
+cardianatomy register-rigid source-landmarks.json target-landmarks.json
+cardianatomy audit-manifest toolchain.json
 ```
 
 ## Readiness is not one boolean
@@ -125,6 +135,9 @@ CardiAnatomy does not fork every research codebase. It keeps a stable Virelion c
 | LDRB | rule-based fiber methodology | LGPL-3.0+; optional external/backend integration |
 | AugmentA | atrial orifice/landmark/SSM/fiber architecture ideas | non-commercial academic license; **not enabled by default** |
 | openCARP | UVC/fiber/simulation ecosystem | academic/commercial dual licensing; **explicit deployment review required** |
+| CEMRG HeartBuilder | whole-heart modular pipeline and robust external-tool orchestration | license text unclear in repository review; architecture reference only by default |
+| MorphiNetV2 | topology-preserving dense-correspondence biventricular reconstruction | research/model backend candidate; review code + weight terms before enabling |
+| Bi-PT | sparse-CMR four-chamber atlas deformation | emerging research backend candidate; keep experimental until independently validated |
 
 See `docs/RESEARCH_SURVEY_2026-10-01.md` and `THIRD_PARTY_NOTICES.md`.
 
@@ -138,6 +151,12 @@ CardiAnatomy advertises:
 - `anatomy.tools`
 - `anatomy.microstructure.reference`
 - `anatomy.scar.classify`
+- `anatomy.presets`
+- `anatomy.registration.rigid`
+- `anatomy.geometry.measure`
+- `anatomy.manifest.audit`
+- `anatomy.series.rank`
+- `anatomy.segmentation.qc`
 
 HeartTwin should persist the returned `AnatomyBundle` as a typed artifact and enforce the correct downstream readiness gate before calling CardiEP, CardiMech, or CardiFlow.
 
