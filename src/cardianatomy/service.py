@@ -16,12 +16,14 @@ class CardiAnatomyService:
         self._backends: dict[str, AnatomyBackend] = {}
         self.pipeline = PipelineExecutor()
         from .adapters import (
+            register_existing_artifact_backends,
             register_standard_external_stage_backends,
             register_standard_monolithic_backends,
         )
         from .native_backends import register_native_stage_backends
 
         register_native_stage_backends(self)
+        register_existing_artifact_backends(self)
         register_standard_external_stage_backends(self)
         register_standard_monolithic_backends(self)
 
