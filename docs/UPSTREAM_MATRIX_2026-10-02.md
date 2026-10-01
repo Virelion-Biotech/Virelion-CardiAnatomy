@@ -12,8 +12,11 @@ This matrix records the projects reviewed while expanding CardiAnatomy 0.3.0. It
 | MyoMesh | DICOM-space alignment, scar integration, fiber assignment, documented smoothing failure modes | explicit frame/registration contracts, scar artifacts, mesh QC | MIT |
 | BiventricularSSM | reproducible synthetic ventricular cohorts with tags/fibers | synthetic/SSM backend category with provenance requirements | MIT; data/SSM assets separate |
 | CEMRG HeartBuilder | modular whole-heart construction and external-tool orchestration | safe subprocess runner, toolchain manifest, whole-heart vocabulary | repository license text unclear during review; no source reuse by default |
-| MorphiNetV2 | topology-preserving biventricular reconstruction with dense correspondence | future learned surface-reconstruction backend contract; correspondence should be preserved as metadata | review code and weights before deployment |
-| Bi-PT | sparse-CMR four-chamber atlas deformation | future sparse-reconstruction backend; explicit experimental validation tier | emerging research code; review before deployment |
+| MorphiNetV2 | biventricular reconstruction with dense point correspondence | native correspondence metrics + future learned surface backend | MIT software; weights/data reviewed separately |
+| Bi-PT | sparse-CMR four-chamber atlas deformation with semantic correspondence | whole-heart labels + correspondence metrics + future learned sparse-CMR backend | MIT software; model/data validation remains separate |
+| HeartVolMesh | template-driven tetrahedral deformation preserving cross-case connectivity | scaled-Jacobian QC + connectivity fingerprints + volumetric correspondence architecture | Apache-2.0 repository; upstream states full code/templates are not yet released |
+| MeshHeart | personalized 3D+t mesh representation | dense-correspondence mesh-motion summaries and explicit model-derived provenance | MIT |
+| TetHeart | 4D tetrahedral recovery from full-stack and sparse CMR | phase-aware motion summaries and future 4D reconstruction adapter boundary | no repository license file observed; architecture reference only |
 | AugmentA | atrial orifices, SSM fitting, atrial LDRB workflow | atrial structures and coordinate-family separation | restricted academic/commercial licensing; disabled by default |
 | atrialmtk | atrial UAC, bilayer/volume models, fibrosis | shared artifact model with atrial-specific coordinate semantics | GPL-3.0 and layered runtime licenses |
 | Meshtool | mesh extraction, mapping, conversion, smoothing | external-process tooling with explicit mesh QC | GPL-3.0 |
@@ -28,6 +31,9 @@ This matrix records the projects reviewed while expanding CardiAnatomy 0.3.0. It
 5. **Metadata heuristics are not learned classifiers.** The built-in cine-series triage is intentionally labeled heuristic; biv-me/learned view selection remains a backend.
 6. **Patient anatomy must remain distinguishable from sampled/synthetic geometry.** Statistical-shape and idealized geometry backends must set provenance accordingly.
 7. **External-tool orchestration needs license policy as code.** Restricted/unclear tools are disabled by default.
+8. **Correspondence needs verification, not assumption by filename.** CardiAnatomy now fingerprints connectivity and reports displacement only after point-count/index correspondence is explicit.
+9. **4D anatomy is more than ED/ES.** Dense-correspondence mesh sequences now have reference-phase displacement, inter-phase step motion, vertex path length, and cyclic-closure diagnostics.
+10. **Simulation-facing mesh QC should include normalized shape metrics.** Tetrahedral mean-ratio and scaled-Jacobian summaries complement degeneracy/orientation checks.
 
 ## Scientific references
 
@@ -35,3 +41,5 @@ This matrix records the projects reviewed while expanding CardiAnatomy 0.3.0. It
 - Deng Y, et al. MorphiNet: A Graph Subdivision Network for Adaptive Bi-ventricle Surface Reconstruction. IEEE Transactions on Medical Imaging. 2026.
 - Bayer J, et al. Universal ventricular coordinates: A generic framework for describing position within the heart and transferring data. Medical Image Analysis. 2018;45:83-93.
 - Bayer JD, et al. A novel rule-based algorithm for assigning myocardial fiber orientation to computational heart models. Ann Biomed Eng. 2012.
+- Hu C, et al. Bi-PT: Bidirectional Cross-Attention Point Transformers for Four-Chamber Heart Reconstruction from Sparse Cardiac MRI Data. STACOM @ MICCAI. 2026.
+- Chen Y, et al. End-to-End 4D Heart Mesh Recovery Across Full-Stack and Sparse Cardiac MRI. Transactions on Machine Learning Research. 2026.
