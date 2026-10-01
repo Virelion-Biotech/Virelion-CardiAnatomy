@@ -93,3 +93,18 @@ def test_dicom_scan_of_pure_garbage_returns_empty_list(tmp_path: Path) -> None:
     for index in range(20):
         (tmp_path / f"bad-{index}.dcm").write_text("garbage", encoding="utf-8")
     assert inspect_dicom_directory(tmp_path) == []
+
+
+def test_many_files_in_one_series_are_aggregated(tmp_path: Path) -> None:
+    from pydicom.uid import generate_uid
+
+    series_uid = generate_uid()
+    for index in range(50):
+        _write_minimal_dicom(
+            tmp_path / f"cine-{index:03d}.dcm",
+            malformed_geometry=False,
+            series_uid=series_uid,
+        )
+    summaries = inspect_dicom_directory(tmp_path)
+    assert len(summaries) == 1
+    assert summaries[0].file_count == 50
