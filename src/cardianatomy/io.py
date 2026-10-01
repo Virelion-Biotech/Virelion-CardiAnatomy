@@ -11,6 +11,67 @@ from .provenance import sha256
 from .qc import inspect_tetra_mesh, inspect_triangle_surface
 
 
+def _positive_int_or_none(
+    value: Any,
+    name: str,
+    warnings: list[str],
+) -> int | None:
+    if value is None:
+        return None
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError, OverflowError):
+        warnings.append(f"invalid {name}")
+        return None
+    if parsed < 1:
+        warnings.append(f"invalid {name}")
+        return None
+    return parsed
+
+
+def _positive_float_or_none(
+    value: Any,
+    name: str,
+    warnings: list[str],
+) -> float | None:
+    if value is None:
+        return None
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError, OverflowError):
+        warnings.append(f"invalid {name}")
+        return None
+    if not np.isfinite(parsed) or parsed <= 0:
+        warnings.append(f"invalid {name}")
+        return None
+    return parsed
+
+
+def _float_tuple_or_none(
+    value: Any,
+    *,
+    name: str,
+    length: int,
+    warnings: list[str],
+    positive: bool = False,
+) -> tuple[float, ...] | None:
+    if value is None:
+        return None
+    try:
+        parsed = tuple(float(item) for item in value)
+    except (TypeError, ValueError, OverflowError):
+        warnings.append(f"invalid {name}")
+        return None
+    if (
+        len(parsed) != length
+        or not np.all(np.isfinite(parsed))
+        or (positive and any(item <= 0 for item in parsed))
+    ):
+        warnings.append(f"invalid {name}")
+        return None
+    return parsed
+
+
 def inspect_dicom_directory(path: str | Path) -> list[DicomSeriesSummary]:
     """Inspect DICOM geometry metadata without returning direct patient identifiers."""
     try:
@@ -33,11 +94,22 @@ def inspect_dicom_directory(path: str | Path) -> list[DicomSeriesSummary]:
     output: list[DicomSeriesSummary] = []
     for uid, datasets in series.items():
         first = datasets[0]
-        spacing = getattr(first, "PixelSpacing", None)
-        orientation = getattr(first, "ImageOrientationPatient", None)
-        temporal_positions = getattr(first, "NumberOfTemporalPositions", None)
         warnings: list[str] = []
-        if orientation is None:
+        spacing = _float_tuple_or_none(
+            getattr(first, "PixelSpacing", None),
+            name="PixelSpacing",
+            length=2,
+            warnings=warnings,
+            positive=True,
+        )
+        orientation_raw = getattr(first, "ImageOrientationPatient", None)
+        orientation = _float_tuple_or_none(
+            orientation_raw,
+            name="ImageOrientationPatient",
+            length=6,
+            warnings=warnings,
+        )
+        if orientation_raw is None:
             warnings.append("missing ImageOrientationPatient")
         output.append(
             DicomSeriesSummary(
@@ -45,16 +117,28 @@ def inspect_dicom_directory(path: str | Path) -> list[DicomSeriesSummary]:
                 modality=str(getattr(first, "Modality", "")) or None,
                 description=str(getattr(first, "SeriesDescription", "")) or None,
                 file_count=len(datasets),
-                rows=int(first.Rows) if hasattr(first, "Rows") else None,
-                columns=int(first.Columns) if hasattr(first, "Columns") else None,
-                pixel_spacing_mm=tuple(float(x) for x in spacing) if spacing is not None else None,
-                slice_thickness_mm=(
-                    float(first.SliceThickness) if hasattr(first, "SliceThickness") else None
+                rows=_positive_int_or_none(
+                    getattr(first, "Rows", None),
+                    "Rows",
+                    warnings,
                 ),
-                temporal_positions=(int(temporal_positions) if temporal_positions else None),
-                image_orientation_patient=(
-                    tuple(float(x) for x in orientation) if orientation is not None else None
+                columns=_positive_int_or_none(
+                    getattr(first, "Columns", None),
+                    "Columns",
+                    warnings,
                 ),
+                pixel_spacing_mm=spacing,
+                slice_thickness_mm=_positive_float_or_none(
+                    getattr(first, "SliceThickness", None),
+                    "SliceThickness",
+                    warnings,
+                ),
+                temporal_positions=_positive_int_or_none(
+                    getattr(first, "NumberOfTemporalPositions", None),
+                    "NumberOfTemporalPositions",
+                    warnings,
+                ),
+                image_orientation_patient=orientation,
                 warnings=warnings,
             )
         )
