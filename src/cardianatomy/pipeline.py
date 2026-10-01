@@ -223,6 +223,7 @@ class PipelineExecutor:
             tick = perf_counter()
             try:
                 output = backend.run(request, bundle, workdir, parameters)
+                _ensure_unique_output_ids(bundle, output.artifacts)
             except Exception as exc:
                 finished = datetime.now(timezone.utc)
                 record = StageRecord(
@@ -261,7 +262,6 @@ class PipelineExecutor:
                 duration_seconds=perf_counter() - tick,
                 warnings=output.warnings,
             )
-            _ensure_unique_output_ids(bundle, output.artifacts)
             bundle.artifacts.extend(output.artifacts)
             if output.qc is not None:
                 bundle.qc = output.qc
