@@ -15,7 +15,7 @@
         "media_type": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Media Type"},
         "metadata": {"additionalProperties": true, "title": "Metadata", "type": "object"},
         "producer": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Producer"},
-        "sha256": {"anyOf": [{"maxLength": 64, "minLength": 64, "type": "string"}, {"type": "null"}], "default": null, "title": "Sha256"},
+        "sha256": {"anyOf": [{"maxLength": 64, "minLength": 64, "pattern": "^[0-9a-fA-F]{64}$", "type": "string"}, {"type": "null"}], "default": null, "title": "Sha256"},
         "size_bytes": {"anyOf": [{"minimum": 0, "type": "integer"}, {"type": "null"}], "default": null, "title": "Size Bytes"},
         "study_id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Study Id"},
         "subject_id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Subject Id"},
