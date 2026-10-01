@@ -41,16 +41,24 @@ def nearest_point_distances(
     output = np.empty(len(source), dtype=float)
     for source_start in range(0, len(source), block_size):
         source_block = source[source_start : source_start + block_size]
-        best_sq = np.full(len(source_block), np.inf, dtype=float)
+        best = np.full(len(source_block), np.inf, dtype=float)
         for target_start in range(0, len(target), block_size):
             target_block = target[target_start : target_start + block_size]
-            difference = (
-                source_block[:, None, :]
-                - target_block[None, :, :]
+            with np.errstate(over="ignore", invalid="ignore"):
+                difference = (
+                    source_block[:, None, :]
+                    - target_block[None, :, :]
+                )
+            if not np.all(np.isfinite(difference)):
+                raise OverflowError(
+                    "point-set coordinate differences exceed float64 range"
+                )
+            distance = np.hypot(
+                np.hypot(difference[:, :, 0], difference[:, :, 1]),
+                difference[:, :, 2],
             )
-            squared = np.einsum("ijk,ijk->ij", difference, difference)
-            best_sq = np.minimum(best_sq, np.min(squared, axis=1))
-        output[source_start : source_start + len(source_block)] = np.sqrt(best_sq)
+            best = np.minimum(best, np.min(distance, axis=1))
+        output[source_start : source_start + len(source_block)] = best
     return output
 
 
@@ -74,6 +82,13 @@ def point_set_distance_summary(
         block_size=block_size,
     )
     all_distances = np.concatenate([forward, backward])
+    distance_scale = float(np.max(all_distances))
+    if distance_scale == 0.0:
+        symmetric_rms = 0.0
+    else:
+        symmetric_rms = distance_scale * float(
+            np.sqrt(np.mean((all_distances / distance_scale) ** 2))
+        )
     hd95 = max(
         float(np.quantile(forward, 0.95)),
         float(np.quantile(backward, 0.95)),
@@ -82,7 +97,7 @@ def point_set_distance_summary(
         reference_to_prediction_mean=float(np.mean(forward)),
         prediction_to_reference_mean=float(np.mean(backward)),
         symmetric_mean=float(np.mean(all_distances)),
-        symmetric_rms=float(np.sqrt(np.mean(all_distances**2))),
+        symmetric_rms=symmetric_rms,
         hd95=hd95,
         hausdorff=float(max(np.max(forward), np.max(backward))),
         reference_point_count=int(len(reference)),
@@ -104,6 +119,11 @@ def segmentation_overlap_metrics(
         raise ValueError("reference_labels and prediction_labels must have the same shape")
     if reference.size == 0:
         raise ValueError("segmentation arrays must not be empty")
+    if (
+        not np.issubdtype(reference.dtype, np.number)
+        or not np.issubdtype(prediction.dtype, np.number)
+    ):
+        raise ValueError("segmentation arrays must be numeric")
     if not np.all(np.isfinite(reference)) or not np.all(np.isfinite(prediction)):
         raise ValueError("segmentation arrays must be finite")
     if not np.all(reference == np.floor(reference)):
@@ -111,6 +131,14 @@ def segmentation_overlap_metrics(
     if not np.all(prediction == np.floor(prediction)):
         raise ValueError("prediction_labels must be integer-valued")
 
+    limits = np.iinfo(np.int64)
+    if (
+        np.any(reference < limits.min)
+        or np.any(reference > limits.max)
+        or np.any(prediction < limits.min)
+        or np.any(prediction > limits.max)
+    ):
+        raise ValueError("segmentation labels exceed int64 range")
     reference = reference.astype(np.int64, copy=False)
     prediction = prediction.astype(np.int64, copy=False)
     selected = (
