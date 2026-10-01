@@ -48,3 +48,35 @@ def test_pipeline_executor_records_stage(tmp_path) -> None:
     assert bundle.stages[0].status == "ok"
     assert "segmentation" in bundle.artifact_kinds()
     assert bundle.bundle_fingerprint
+
+
+def test_pipeline_resume_restores_stage_artifacts(tmp_path) -> None:
+    acquisition = ImagingAcquisition(
+        subject_id="S1",
+        study_id="ST1",
+        acquisition_id="A1",
+        modality="CMR",
+        source=ArtifactRef(
+            artifact_id="raw",
+            kind="nifti_image",
+            uri="file:///raw.nii.gz",
+        ),
+    )
+    request = AnatomyRequest(
+        subject_id="S1",
+        acquisition=acquisition,
+        output_root=str(tmp_path),
+    )
+    executor = PipelineExecutor()
+    executor.register(SegmentationBackend())
+    plan = PipelinePlan(
+        stages=["segmentation"],
+        backends={"segmentation": "fixture"},
+    )
+    first = executor.execute(request, plan)
+    second = executor.execute(request, plan)
+
+    assert [item.artifact_id for item in first.artifacts] == [
+        item.artifact_id for item in second.artifacts
+    ]
+    assert second.stages[0].status == "ok"
