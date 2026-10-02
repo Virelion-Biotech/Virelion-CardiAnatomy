@@ -54,6 +54,11 @@ def main() -> int:
         "inspect-dicom", help="Inspect DICOM geometry metadata without PHI"
     )
     inspect_dicom.add_argument("path")
+    inspect_dicom.add_argument(
+        "--include-free-text",
+        action="store_true",
+        help="Opt in to returning free-text DICOM fields such as SeriesDescription",
+    )
 
     inspect_nifti_cmd = sub.add_parser(
         "inspect-nifti", help="Inspect NIfTI shape, spacing, and affine"
@@ -142,7 +147,15 @@ def main() -> int:
         )
         return 0
     if args.command == "inspect-dicom":
-        _write_json([item.model_dump(mode="json") for item in inspect_dicom_directory(args.path)])
+        _write_json(
+            [
+                item.model_dump(mode="json")
+                for item in inspect_dicom_directory(
+                    args.path,
+                    include_free_text=args.include_free_text,
+                )
+            ]
+        )
         return 0
     if args.command == "inspect-nifti":
         _write_json(inspect_nifti(args.path))
