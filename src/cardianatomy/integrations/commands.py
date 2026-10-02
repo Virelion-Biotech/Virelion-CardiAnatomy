@@ -92,7 +92,7 @@ def run_command(
         executable=executable or str(Path(argv[0]).resolve()),
     )
     if process.returncode:
-        message = process.stderr.strip() or process.stdout.strip()
+        message = stderr.strip() or stdout.strip()
         raise RuntimeError(
             f"Command failed ({process.returncode}): "
             f"{' '.join(result.command)}\n{message}"
