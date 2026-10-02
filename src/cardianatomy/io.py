@@ -76,6 +76,7 @@ def inspect_dicom_directory(
     path: str | Path,
     *,
     include_free_text: bool = False,
+    max_files: int = 100_000,
 ) -> list[DicomSeriesSummary]:
     """Inspect DICOM geometry metadata without returning direct patient identifiers.
 
@@ -90,21 +91,39 @@ def inspect_dicom_directory(
     root = Path(path)
     if not root.is_dir():
         raise ValueError(f"DICOM directory does not exist: {root}")
-    series: dict[str, tuple[Any, int]] = {}
-    for file in sorted(p for p in root.rglob("*") if p.is_file()):
+    if (
+        isinstance(max_files, bool)
+        or not isinstance(max_files, int)
+        or max_files < 1
+    ):
+        raise ValueError("max_files must be a positive integer")
+    series: dict[str, tuple[Any, int, str]] = {}
+    scanned = 0
+    for file in root.rglob("*"):
+        if not file.is_file():
+            continue
+        scanned += 1
+        if scanned > max_files:
+            raise ValueError(
+                f"DICOM directory exceeds max_files={max_files}"
+            )
         try:
             ds = pydicom.dcmread(str(file), stop_before_pixels=True, force=False)
         except Exception:
             continue
         uid = str(getattr(ds, "SeriesInstanceUID", ""))
         if uid:
+            file_key = str(file)
             if uid in series:
-                first, count = series[uid]
-                series[uid] = (first, count + 1)
+                first, count, first_key = series[uid]
+                if file_key < first_key:
+                    first = ds
+                    first_key = file_key
+                series[uid] = (first, count + 1, first_key)
             else:
-                series[uid] = (ds, 1)
+                series[uid] = (ds, 1, file_key)
     output: list[DicomSeriesSummary] = []
-    for uid, (first, file_count) in series.items():
+    for uid, (first, file_count, _) in series.items():
         warnings: list[str] = []
         spacing = _float_tuple_or_none(
             getattr(first, "PixelSpacing", None),
