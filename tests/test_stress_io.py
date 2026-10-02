@@ -5,11 +5,17 @@ import pytest
 from cardianatomy import inspect_dicom_directory
 
 
-def _write_minimal_dicom(\n    path: Path,\n    *,\n    malformed_geometry: bool,\n    series_uid: str | None = None,\n) -> str:\n    pytest.importorskip("pydicom")
+def _write_minimal_dicom(
+    path: Path,
+    *,
+    malformed_geometry: bool,
+    series_uid: str | None = None,
+) -> str:
+    pytest.importorskip("pydicom")
     from pydicom.dataset import FileDataset, FileMetaDataset
     from pydicom.uid import ExplicitVRLittleEndian, MRImageStorage, generate_uid
 
-    series_uid = generate_uid()
+    series_uid = series_uid or generate_uid()
     file_meta = FileMetaDataset()
     file_meta.MediaStorageSOPClassUID = MRImageStorage
     file_meta.MediaStorageSOPInstanceUID = generate_uid()
