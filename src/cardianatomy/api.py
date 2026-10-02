@@ -343,6 +343,9 @@ class AnatomyAPI:
             np.asarray(payload["reference_points"], dtype=float),
             np.asarray(payload["prediction_points"], dtype=float),
             block_size=int(payload.get("block_size", 1024)),
+            max_pair_evaluations=int(
+                payload.get("max_pair_evaluations", 20_000_000)
+            ),
         )
         return {
             "reference_to_prediction_mean": result.reference_to_prediction_mean,
