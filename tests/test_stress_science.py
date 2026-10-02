@@ -151,3 +151,10 @@ def test_readiness_never_ignores_failed_qc() -> None:
     assert not bundle.mechanics_ready
     with pytest.raises(ReadinessError):
         CardiAnatomyService.require_ready(bundle, target="baseline")
+
+
+def test_nearly_parallel_local_frame_vectors_are_rejected() -> None:
+    circumferential = np.array([[1.0, 0.0, 0.0]])
+    longitudinal = np.array([[1.0, 1e-12, 0.0]])
+    with pytest.raises(ValueError, match="too nearly parallel"):
+        orthonormal_local_frame(circumferential, longitudinal)
