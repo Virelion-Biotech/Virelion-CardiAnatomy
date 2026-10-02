@@ -71,8 +71,16 @@ def _float_tuple_or_none(
     return parsed
 
 
-def inspect_dicom_directory(path: str | Path) -> list[DicomSeriesSummary]:
-    """Inspect DICOM geometry metadata without returning direct patient identifiers."""
+def inspect_dicom_directory(
+    path: str | Path,
+    *,
+    include_free_text: bool = False,
+) -> list[DicomSeriesSummary]:
+    """Inspect DICOM geometry metadata without returning direct patient identifiers.
+
+    Free-text fields such as SeriesDescription are redacted by default because
+    clinical systems may place patient identifiers in them.
+    """
     try:
         import pydicom
     except ImportError as exc:
@@ -117,7 +125,11 @@ def inspect_dicom_directory(path: str | Path) -> list[DicomSeriesSummary]:
             DicomSeriesSummary(
                 series_uid_sha256=sha256(uid),
                 modality=str(getattr(first, "Modality", "")) or None,
-                description=str(getattr(first, "SeriesDescription", "")) or None,
+                description=(
+                    str(getattr(first, "SeriesDescription", "")) or None
+                    if include_free_text
+                    else None
+                ),
                 file_count=file_count,
                 rows=_positive_int_or_none(
                     getattr(first, "Rows", None),
