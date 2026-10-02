@@ -34,6 +34,28 @@ from .transforms import compose_affines, invert_affine, validate_affine
 from .validation import point_set_distance_summary, segmentation_overlap_metrics
 
 
+def _strict_bool(value: Any, name: str) -> bool:
+    if not isinstance(value, bool):
+        raise ValueError(f"{name} must be a boolean")
+    return value
+
+
+def _strict_int(value: Any, name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"{name} must be an integer")
+    return value
+
+
+def _optional_strict_int(
+    payload: dict[str, Any],
+    name: str,
+    default: int,
+) -> int:
+    if name not in payload:
+        return default
+    return _strict_int(payload[name], name)
+
+
 class AnatomyAPI:
     """Framework-agnostic facade intended for HeartTwin native integration."""
 
@@ -143,7 +165,11 @@ class AnatomyAPI:
         result = estimate_rigid_transform(
             np.asarray(payload["source_points"], dtype=float),
             np.asarray(payload["target_points"], dtype=float),
-            allow_reflection=bool(payload.get("allow_reflection", False)),
+            allow_reflection=(
+                False
+                if "allow_reflection" not in payload
+                else _strict_bool(payload["allow_reflection"], "allow_reflection")
+            ),
         )
         return {
             "matrix": result.matrix.tolist(),
@@ -179,7 +205,11 @@ class AnatomyAPI:
         manifest = ToolchainManifest.model_validate(manifest_payload)
         problems = audit_manifest_licenses(
             manifest,
-            allow_restricted=bool(payload.get("allow_restricted", False)),
+            allow_restricted=(
+                False
+                if "allow_restricted" not in payload
+                else _strict_bool(payload["allow_restricted"], "allow_restricted")
+            ),
         )
         finalized = manifest.finalized()
         return {
@@ -208,10 +238,24 @@ class AnatomyAPI:
 
     def segmentation_qc(self, payload: dict[str, Any]) -> dict[str, Any]:
         required = payload.get("required_labels")
+        if required is not None:
+            if not isinstance(required, list):
+                raise ValueError("required_labels must be a list of integers")
+            required_labels = {
+                _strict_int(value, "required_labels item")
+                for value in required
+            }
+        else:
+            required_labels = None
+        background_label = _optional_strict_int(
+            payload,
+            "background_label",
+            0,
+        )
         return segmentation_qc(
             np.asarray(payload["labels"]),
-            required_labels=None if required is None else {int(x) for x in required},
-            background_label=int(payload.get("background_label", 0)),
+            required_labels=required_labels,
+            background_label=background_label,
         )
 
     def cine_phases(self, payload: dict[str, Any]) -> dict[str, Any]:
@@ -219,9 +263,16 @@ class AnatomyAPI:
         if "labels" in payload:
             result = select_ed_es_from_segmentation(
                 np.asarray(payload["labels"]),
-                chamber_label=int(payload["chamber_label"]),
+                chamber_label=_strict_int(
+                    payload["chamber_label"],
+                    "chamber_label",
+                ),
                 spacing_mm=tuple(float(x) for x in payload["spacing_mm"]),
-                phase_axis=int(payload.get("phase_axis", -1)),
+                phase_axis=_optional_strict_int(
+                    payload,
+                    "phase_axis",
+                    -1,
+                ),
                 minimum_dynamic_range_fraction=minimum,
             )
         else:
@@ -295,7 +346,11 @@ class AnatomyAPI:
         frames = np.asarray(payload["frames"], dtype=float)
         result = summarize_mesh_sequence(
             frames,
-            reference_phase=int(payload.get("reference_phase", 0)),
+            reference_phase=_optional_strict_int(
+                payload,
+                "reference_phase",
+                0,
+            ),
         )
         output = {
             "phase_count": result.phase_count,
@@ -313,7 +368,12 @@ class AnatomyAPI:
             "max_vertex_path_length": result.max_vertex_path_length,
             "validation_status": "dense_correspondence_assumed",
         }
-        if bool(payload.get("cyclic", False)):
+        cyclic = (
+            False
+            if "cyclic" not in payload
+            else _strict_bool(payload["cyclic"], "cyclic")
+        )
+        if cyclic:
             output["cyclic_closure_error"] = cyclic_closure_error(frames)
         return output
 
@@ -325,12 +385,18 @@ class AnatomyAPI:
             labels=(
                 None
                 if requested is None
-                else {int(value) for value in requested}
+                else {
+                    _strict_int(value, "labels item")
+                    for value in requested
+                }
             ),
             background_label=(
                 None
                 if payload.get("background_label", 0) is None
-                else int(payload.get("background_label", 0))
+                else _strict_int(
+                    payload.get("background_label", 0),
+                    "background_label",
+                )
             ),
         )
         return {
@@ -342,9 +408,15 @@ class AnatomyAPI:
         result = point_set_distance_summary(
             np.asarray(payload["reference_points"], dtype=float),
             np.asarray(payload["prediction_points"], dtype=float),
-            block_size=int(payload.get("block_size", 1024)),
-            max_pair_evaluations=int(
-                payload.get("max_pair_evaluations", 20_000_000)
+            block_size=_optional_strict_int(
+                payload,
+                "block_size",
+                1024,
+            ),
+            max_pair_evaluations=_optional_strict_int(
+                payload,
+                "max_pair_evaluations",
+                20_000_000,
             ),
         )
         return {
