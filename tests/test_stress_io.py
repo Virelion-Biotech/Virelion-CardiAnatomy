@@ -235,3 +235,19 @@ def test_nonfinite_mesh_coordinates_fail_qc(tmp_path: Path) -> None:
     assert not inspection.finite
     assert not qc.passed
     assert not qc.checks["finite"]
+
+
+def test_dicom_scan_enforces_file_count_ceiling(tmp_path: Path) -> None:
+    for index in range(6):
+        (tmp_path / f"garbage-{index}.bin").write_bytes(b"x")
+    with pytest.raises(ValueError, match="max_files=5"):
+        inspect_dicom_directory(tmp_path, max_files=5)
+
+
+@pytest.mark.parametrize("max_files", [0, -1, True, 1.5])
+def test_dicom_scan_rejects_invalid_file_limit(
+    tmp_path: Path,
+    max_files,
+) -> None:
+    with pytest.raises(ValueError, match="max_files"):
+        inspect_dicom_directory(tmp_path, max_files=max_files)
