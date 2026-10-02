@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import tempfile
 
 import numpy as np
 from dataclasses import dataclass
@@ -37,11 +38,18 @@ def run_command(
     timeout: float = 3600.0,
     cwd: str | Path | None = None,
     env: Mapping[str, str] | None = None,
+    max_output_chars: int = 1_000_000,
 ) -> CommandResult:
     if not command:
         raise ValueError("command must not be empty")
     if not np.isfinite(timeout) or timeout <= 0:
         raise ValueError("timeout must be finite and strictly positive")
+    if (
+        isinstance(max_output_chars, bool)
+        or not isinstance(max_output_chars, int)
+        or max_output_chars < 1
+    ):
+        raise ValueError("max_output_chars must be a positive integer")
     argv = [str(item) for item in command]
     executable = shutil.which(argv[0])
     direct = Path(argv[0])
@@ -53,22 +61,33 @@ def run_command(
     process_env = os.environ.copy()
     if env:
         process_env.update({str(key): str(value) for key, value in env.items()})
+    def read_bounded(handle) -> str:
+        handle.seek(0)
+        value = handle.read(max_output_chars + 1)
+        if len(value) <= max_output_chars:
+            return value
+        return value[:max_output_chars] + "\n...[output truncated]"
+
     started = perf_counter()
-    process = subprocess.run(
-        argv,
-        cwd=None if cwd is None else str(cwd),
-        env=process_env,
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-        check=False,
-        shell=False,
-    )
+    with tempfile.TemporaryFile(mode="w+t", encoding="utf-8") as stdout_file:
+        with tempfile.TemporaryFile(mode="w+t", encoding="utf-8") as stderr_file:
+            process = subprocess.run(
+                argv,
+                cwd=None if cwd is None else str(cwd),
+                env=process_env,
+                stdout=stdout_file,
+                stderr=stderr_file,
+                timeout=timeout,
+                check=False,
+                shell=False,
+            )
+            stdout = read_bounded(stdout_file)
+            stderr = read_bounded(stderr_file)
     result = CommandResult(
         command=tuple(argv),
         returncode=process.returncode,
-        stdout=process.stdout,
-        stderr=process.stderr,
+        stdout=stdout,
+        stderr=stderr,
         duration_seconds=perf_counter() - started,
         executable=executable or str(Path(argv[0]).resolve()),
     )
