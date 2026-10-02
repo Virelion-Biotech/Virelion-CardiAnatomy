@@ -7,6 +7,24 @@ import numpy as np
 from .coordinates import apply_affine
 
 
+def _stable_centroid(points: np.ndarray) -> np.ndarray:
+    scale = np.max(np.abs(points), axis=0)
+    normalized = np.divide(
+        points,
+        scale,
+        out=np.zeros_like(points),
+        where=scale > 0,
+    )
+    return normalized.mean(axis=0) * scale
+
+
+def _row_norm(vectors: np.ndarray) -> np.ndarray:
+    return np.hypot(
+        np.hypot(vectors[:, 0], vectors[:, 1]),
+        vectors[:, 2],
+    )
+
+
 @dataclass(frozen=True)
 class RigidRegistrationResult:
     matrix: np.ndarray
@@ -32,10 +50,16 @@ def estimate_rigid_transform(
     if not np.all(np.isfinite(source)) or not np.all(np.isfinite(target)):
         raise ValueError("Landmarks must be finite")
 
-    source_centroid = source.mean(axis=0)
-    target_centroid = target.mean(axis=0)
-    source_centered = source - source_centroid
-    target_centered = target - target_centroid
+    source_centroid = _stable_centroid(source)
+    target_centroid = _stable_centroid(target)
+    with np.errstate(over="ignore", invalid="ignore"):
+        source_centered = source - source_centroid
+        target_centered = target - target_centroid
+    if (
+        not np.all(np.isfinite(source_centered))
+        or not np.all(np.isfinite(target_centered))
+    ):
+        raise OverflowError("landmark coordinate span exceeds float64 range")
     source_rank = int(np.linalg.matrix_rank(source_centered))
     target_rank = int(np.linalg.matrix_rank(target_centered))
     if source_rank < 2 or target_rank < 2:
@@ -44,20 +68,31 @@ def estimate_rigid_transform(
             "in both point sets"
         )
 
-    covariance = source_centered.T @ target_centered
+    source_scale = float(np.max(np.abs(source_centered)))
+    target_scale = float(np.max(np.abs(target_centered)))
+    if source_scale == 0.0 or target_scale == 0.0:
+        raise ValueError("landmark sets must span nonzero geometry")
+    covariance = (
+        source_centered / source_scale
+    ).T @ (
+        target_centered / target_scale
+    )
     u, _, vt = np.linalg.svd(covariance)
     rotation = vt.T @ u.T
     if np.linalg.det(rotation) < 0 and not allow_reflection:
         vt[-1, :] *= -1
         rotation = vt.T @ u.T
 
-    translation = target_centroid - rotation @ source_centroid
+    with np.errstate(over="ignore", invalid="ignore"):
+        translation = target_centroid - rotation @ source_centroid
+    if not np.all(np.isfinite(translation)):
+        raise OverflowError("rigid-registration translation exceeds float64 range")
     matrix = np.eye(4, dtype=float)
     matrix[:3, :3] = rotation
     matrix[:3, 3] = translation
 
     transformed = apply_affine(source, matrix)
-    error = np.linalg.norm(transformed - target, axis=1)
+    error = _row_norm(transformed - target)
     return RigidRegistrationResult(
         matrix=matrix,
         rms_error=float(np.sqrt(np.mean(error**2))),
@@ -84,4 +119,8 @@ def registration_residuals(
         )
     if not np.all(np.isfinite(source)) or not np.all(np.isfinite(target)):
         raise ValueError("registration points must be finite")
-    return np.linalg.norm(apply_affine(source, matrix) - target, axis=1)
+    with np.errstate(over="ignore", invalid="ignore"):
+        difference = apply_affine(source, matrix) - target
+    if not np.all(np.isfinite(difference)):
+        raise OverflowError("registration residuals exceed float64 range")
+    return _row_norm(difference)
