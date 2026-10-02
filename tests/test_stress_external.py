@@ -154,3 +154,45 @@ def test_audit_still_flags_missing_asset_provenance() -> None:
     problems = audit_manifest_licenses(manifest)
     assert any("missing SHA-256" in item for item in problems)
     assert any("license is not recorded" in item for item in problems)
+
+
+@pytest.mark.parametrize("limit", [0, -1, True, 1.5])
+def test_run_command_rejects_invalid_output_limit(limit) -> None:
+    with pytest.raises(ValueError, match="max_output_chars"):
+        run_command(
+            [sys.executable, "-c", "print('x')"],
+            max_output_chars=limit,
+        )
+
+
+def test_run_command_bounds_large_stdout_in_memory() -> None:
+    result = run_command(
+        [
+            sys.executable,
+            "-c",
+            "import sys; sys.stdout.write('x' * 200000)",
+        ],
+        max_output_chars=4096,
+    )
+    assert result.stdout.startswith("x" * 100)
+    assert len(result.stdout) < 4200
+    assert result.stdout.endswith("...[output truncated]")
+
+
+def test_run_command_bounds_large_stderr_on_failure() -> None:
+    with pytest.raises(RuntimeError) as exc_info:
+        run_command(
+            [
+                sys.executable,
+                "-c",
+                (
+                    "import sys; "
+                    "sys.stderr.write('e' * 200000); "
+                    "sys.exit(3)"
+                ),
+            ],
+            max_output_chars=2048,
+        )
+    message = str(exc_info.value)
+    assert "...[output truncated]" in message
+    assert len(message) < 2300
