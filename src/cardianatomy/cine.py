@@ -26,6 +26,8 @@ def chamber_volume_curve_ml(
 ) -> np.ndarray:
     """Compute one chamber's 3D label volume across cine phases."""
     values = np.asarray(labels)
+    if chamber_label < 0:
+        raise ValueError("chamber_label must be non-negative")
     if values.ndim != 4:
         raise ValueError("cine segmentation must have four dimensions")
     phase_axis = phase_axis % values.ndim
@@ -43,6 +45,13 @@ def select_ed_es_from_volume_curve(
     minimum_dynamic_range_fraction: float = 0.02,
 ) -> CinePhaseSelection:
     """Select ED at maximum chamber volume and ES at minimum volume."""
+    if (
+        not np.isfinite(minimum_dynamic_range_fraction)
+        or not 0.0 <= minimum_dynamic_range_fraction < 1.0
+    ):
+        raise ValueError(
+            "minimum_dynamic_range_fraction must lie in [0, 1)"
+        )
     volumes = np.asarray(volumes_ml, dtype=float)
     if volumes.ndim != 1 or len(volumes) < 2:
         raise ValueError("volumes_ml must be a one-dimensional curve with >=2 phases")
