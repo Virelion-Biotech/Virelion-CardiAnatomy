@@ -59,6 +59,12 @@ def main() -> int:
         action="store_true",
         help="Opt in to returning free-text DICOM fields such as SeriesDescription",
     )
+    inspect_dicom.add_argument(
+        "--max-files",
+        type=int,
+        default=100_000,
+        help="Maximum number of files to scan before failing closed",
+    )
 
     inspect_nifti_cmd = sub.add_parser(
         "inspect-nifti", help="Inspect NIfTI shape, spacing, and affine"
@@ -153,6 +159,7 @@ def main() -> int:
                 for item in inspect_dicom_directory(
                     args.path,
                     include_free_text=args.include_free_text,
+                    max_files=args.max_files,
                 )
             ]
         )
