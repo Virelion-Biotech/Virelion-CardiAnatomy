@@ -124,3 +124,29 @@ def test_point_validation_api() -> None:
     )
     assert result["hausdorff"] == 1.0
     assert result["units"] == "mm"
+
+
+def test_correspondence_api_rejects_fractional_connectivity() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="integer indices"):
+        AnatomyAPI().correspondence_compare(
+            {
+                "reference_points": [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
+                "target_points": [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
+                "reference_cells": [[0, 1.5, 2]],
+                "target_cells": [[0, 1, 2]],
+            }
+        )
+
+
+def test_geometry_api_rejects_fractional_connectivity() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="integer indices"):
+        AnatomyAPI().geometry_measure(
+            {
+                "points": [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
+                "triangles": [[0, 1.5, 2]],
+            }
+        )
