@@ -104,3 +104,52 @@ def test_distorted_tetra_has_lower_scaled_jacobian() -> None:
     tetra = np.array([[0, 1, 2, 3]])
     quality = tetra_scaled_jacobian_quality(points, tetra)
     assert 0.0 <= quality[0] < 0.1
+
+
+def test_unused_points_fail_qc() -> None:
+    points = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+            [99.0, 99.0, 99.0],
+        ]
+    )
+    tetra = np.array([[0, 1, 2, 3]])
+    inspection = inspect_tetra_mesh(points, tetra)
+    qc = qc_from_inspection(inspection)
+    assert inspection.metadata["unused_point_count"] == 1
+    assert not qc.passed
+    assert not qc.checks["no_unused_points"]
+
+
+def test_duplicate_tetrahedra_fail_qc_even_with_reordered_nodes() -> None:
+    points = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+        ]
+    )
+    tetra = np.array([[0, 1, 2, 3], [1, 0, 3, 2]])
+    inspection = inspect_tetra_mesh(points, tetra)
+    qc = qc_from_inspection(inspection)
+    assert inspection.metadata["duplicate_cell_count"] == 1
+    assert not qc.passed
+    assert not qc.checks["no_duplicate_cells"]
+
+
+def test_unknown_mesh_cell_type_cannot_pass_generic_qc() -> None:
+    from cardianatomy import MeshInspection
+
+    inspection = MeshInspection(
+        point_count=2,
+        cell_count=1,
+        finite=True,
+        metadata={"cell_types": ["line"]},
+    )
+    qc = qc_from_inspection(inspection)
+    assert not qc.passed
+    assert not qc.checks["supported_geometry"]
