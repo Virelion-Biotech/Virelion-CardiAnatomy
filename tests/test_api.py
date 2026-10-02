@@ -150,3 +150,84 @@ def test_geometry_api_rejects_fractional_connectivity() -> None:
                 "triangles": [[0, 1.5, 2]],
             }
         )
+
+
+def test_manifest_audit_rejects_string_boolean_override() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="allow_restricted"):
+        AnatomyAPI().manifest_audit(
+            {
+                "tools": [{"tool_id": "augmenta"}],
+                "allow_restricted": "false",
+            }
+        )
+
+
+def test_registration_api_rejects_string_boolean() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="allow_reflection"):
+        AnatomyAPI().registration_rigid(
+            {
+                "source_points": [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
+                "target_points": [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
+                "allow_reflection": "false",
+            }
+        )
+
+
+def test_segmentation_api_rejects_fractional_label_controls() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="required_labels"):
+        AnatomyAPI().segmentation_qc(
+            {
+                "labels": [[[0, 1]]],
+                "required_labels": [1.5],
+            }
+        )
+
+
+def test_cine_api_rejects_fractional_chamber_label() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="chamber_label"):
+        AnatomyAPI().cine_phases(
+            {
+                "labels": [
+                    [[[0, 1]], [[0, 1]]],
+                    [[[0, 1]], [[0, 1]]],
+                ],
+                "chamber_label": 1.5,
+                "spacing_mm": [1.0, 1.0, 1.0],
+            }
+        )
+
+
+def test_motion_api_rejects_string_boolean() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="cyclic"):
+        AnatomyAPI().motion_summarize(
+            {
+                "frames": [
+                    [[0, 0, 0]],
+                    [[1, 0, 0]],
+                ],
+                "cyclic": "false",
+            }
+        )
+
+
+def test_point_validation_api_rejects_fractional_block_size() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="block_size"):
+        AnatomyAPI().validation_points(
+            {
+                "reference_points": [[0, 0, 0]],
+                "prediction_points": [[0, 0, 0]],
+                "block_size": 1.5,
+            }
+        )
