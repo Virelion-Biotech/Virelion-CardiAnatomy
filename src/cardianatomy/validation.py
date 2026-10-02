@@ -31,12 +31,29 @@ def nearest_point_distances(
     target_points: np.ndarray,
     *,
     block_size: int = 1024,
+    max_pair_evaluations: int = 20_000_000,
 ) -> np.ndarray:
     """Return Euclidean distance from each source point to its nearest target point."""
     source = _validate_point_set(source_points, "source_points")
     target = _validate_point_set(target_points, "target_points")
-    if block_size < 1:
-        raise ValueError("block_size must be positive")
+    if (
+        isinstance(block_size, bool)
+        or not isinstance(block_size, int)
+        or not 1 <= block_size <= 2048
+    ):
+        raise ValueError("block_size must be an integer in [1, 2048]")
+    if (
+        isinstance(max_pair_evaluations, bool)
+        or not isinstance(max_pair_evaluations, int)
+        or max_pair_evaluations < 1
+    ):
+        raise ValueError("max_pair_evaluations must be a positive integer")
+    pair_count = len(source) * len(target)
+    if pair_count > max_pair_evaluations:
+        raise ValueError(
+            "point-set comparison exceeds the brute-force pair-evaluation limit; "
+            "use a scalable spatial-index validation backend"
+        )
 
     output = np.empty(len(source), dtype=float)
     for source_start in range(0, len(source), block_size):
@@ -67,6 +84,7 @@ def point_set_distance_summary(
     prediction_points: np.ndarray,
     *,
     block_size: int = 1024,
+    max_pair_evaluations: int = 20_000_000,
 ) -> PointSetDistanceSummary:
     """Compute symmetric nearest-point distances in the input coordinate units."""
     reference = _validate_point_set(reference_points, "reference_points")
@@ -75,11 +93,13 @@ def point_set_distance_summary(
         reference,
         prediction,
         block_size=block_size,
+        max_pair_evaluations=max_pair_evaluations,
     )
     backward = nearest_point_distances(
         prediction,
         reference,
         block_size=block_size,
+        max_pair_evaluations=max_pair_evaluations,
     )
     all_distances = np.concatenate([forward, backward])
     distance_scale = float(np.max(all_distances))
