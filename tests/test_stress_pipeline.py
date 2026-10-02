@@ -99,6 +99,31 @@ class BlockingBackend:
         )
 
 
+class UnverifiedBackend:
+    name = "unverified"
+    stage = "segmentation"
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def available(self) -> bool:
+        return True
+
+    def run(self, request, bundle, workdir: Path, parameters):
+        self.calls += 1
+        path = workdir / "unverified.nii.gz"
+        path.write_bytes(f"run-{self.calls}".encode())
+        return StageOutput(
+            artifacts=[
+                ArtifactRef(
+                    artifact_id="unverified-seg",
+                    kind="segmentation",
+                    uri=str(path),
+                )
+            ]
+        )
+
+
 class SourceCollisionBackend:
     name = "collision"
     stage = "segmentation"
@@ -326,3 +351,87 @@ def test_concurrent_same_workdir_fails_fast_instead_of_racing(
 
     assert not thread.is_alive()
     assert not errors
+
+
+def test_sidecar_output_metadata_tampering_forces_recompute(
+    tmp_path: Path,
+) -> None:
+    backend = CountingSegmentationBackend()
+    executor = PipelineExecutor()
+    executor.register(backend)
+    executor.execute(_request(tmp_path), _plan())
+
+    path = _sidecar(tmp_path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["artifacts"][0]["metadata"]["tampered"] = True
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    executor.execute(_request(tmp_path), _plan())
+    assert backend.calls == 2
+
+
+def test_sidecar_valid_qc_tampering_forces_recompute(tmp_path: Path) -> None:
+    backend = CountingSegmentationBackend()
+    executor = PipelineExecutor()
+    executor.register(backend)
+    executor.execute(_request(tmp_path), _plan())
+
+    path = _sidecar(tmp_path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["qc"] = {
+        "passed": True,
+        "checks": {"geometry": True},
+        "metrics": {},
+        "warnings": [],
+        "errors": [],
+        "artifact_id": None,
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    executor.execute(_request(tmp_path), _plan())
+    assert backend.calls == 2
+
+
+def test_legacy_sidecar_without_output_fingerprint_is_not_reused(
+    tmp_path: Path,
+) -> None:
+    backend = CountingSegmentationBackend()
+    executor = PipelineExecutor()
+    executor.register(backend)
+    executor.execute(_request(tmp_path), _plan())
+
+    path = _sidecar(tmp_path)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload.pop("output_fingerprint")
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    executor.execute(_request(tmp_path), _plan())
+    assert backend.calls == 2
+
+
+def test_unverified_stage_outputs_are_never_resumed(tmp_path: Path) -> None:
+    backend = UnverifiedBackend()
+    executor = PipelineExecutor()
+    executor.register(backend)
+    plan = _plan(backend.name)
+
+    executor.execute(_request(tmp_path), plan)
+    executor.execute(_request(tmp_path), plan)
+    assert backend.calls == 2
+
+
+def test_stage_fingerprint_changes_with_semantic_artifact_metadata() -> None:
+    artifact = ArtifactRef(
+        artifact_id="a",
+        kind="segmentation",
+        uri="https://example.invalid/a",
+        sha256="a" * 64,
+        frame_id="frame-a",
+        metadata={"phase": "ED"},
+    )
+    changed_frame = artifact.model_copy(update={"frame_id": "frame-b"})
+    changed_metadata = artifact.model_copy(update={"metadata": {"phase": "ES"}})
+
+    baseline = stage_fingerprint("qc", "native", [artifact], {})
+    assert baseline != stage_fingerprint("qc", "native", [changed_frame], {})
+    assert baseline != stage_fingerprint("qc", "native", [changed_metadata], {})
