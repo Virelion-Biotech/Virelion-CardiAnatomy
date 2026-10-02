@@ -10,6 +10,7 @@ def _write_minimal_dicom(
     *,
     malformed_geometry: bool,
     series_uid: str | None = None,
+    description: str = "stress cine",
 ) -> str:
     pytest.importorskip("pydicom")
     from pydicom.dataset import FileDataset, FileMetaDataset
@@ -31,7 +32,7 @@ def _write_minimal_dicom(
     dataset.SOPInstanceUID = file_meta.MediaStorageSOPInstanceUID
     dataset.SeriesInstanceUID = series_uid
     dataset.Modality = "MR"
-    dataset.SeriesDescription = "stress cine"
+    dataset.SeriesDescription = description
     dataset.PatientName = "SECRET^PATIENT"
     dataset.PatientID = "SHOULD-NOT-LEAK"
     dataset.Rows = 16
@@ -114,3 +115,27 @@ def test_many_files_in_one_series_are_aggregated(tmp_path: Path) -> None:
     summaries = inspect_dicom_directory(tmp_path)
     assert len(summaries) == 1
     assert summaries[0].file_count == 50
+
+
+def test_dicom_free_text_is_redacted_by_default(tmp_path: Path) -> None:
+    _write_minimal_dicom(
+        tmp_path / "phi-description.dcm",
+        malformed_geometry=False,
+        description="cine John Doe MRN-123456",
+    )
+    summary = inspect_dicom_directory(tmp_path)[0]
+    assert summary.description is None
+
+
+def test_dicom_free_text_requires_explicit_opt_in(tmp_path: Path) -> None:
+    description = "cine John Doe MRN-123456"
+    _write_minimal_dicom(
+        tmp_path / "phi-description.dcm",
+        malformed_geometry=False,
+        description=description,
+    )
+    summary = inspect_dicom_directory(
+        tmp_path,
+        include_free_text=True,
+    )[0]
+    assert summary.description == description
