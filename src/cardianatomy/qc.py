@@ -171,6 +171,25 @@ def _edge_lengths(points: np.ndarray, cells: np.ndarray) -> np.ndarray:
     )
 
 
+def _topology_metadata(
+    node_count: int,
+    cells: np.ndarray,
+) -> dict[str, int]:
+    values = np.asarray(cells, dtype=int)
+    if values.size:
+        used = np.unique(values)
+        canonical = np.sort(values, axis=1)
+        _, counts = np.unique(canonical, axis=0, return_counts=True)
+        duplicate_count = int(np.sum(np.maximum(counts - 1, 0)))
+    else:
+        used = np.array([], dtype=int)
+        duplicate_count = 0
+    return {
+        "unused_point_count": int(node_count - len(used)),
+        "duplicate_cell_count": duplicate_count,
+    }
+
+
 def _connected_components(node_count: int, cells: np.ndarray) -> int:
     if node_count == 0:
         return 0
@@ -235,6 +254,7 @@ def inspect_tetra_mesh(points: np.ndarray, tetrahedra: np.ndarray) -> MeshInspec
     metadata.update(
         _quality_summary(scaled_jacobian, "tetra_scaled_jacobian")
     )
+    metadata.update(_topology_metadata(len(points), tetrahedra))
     return MeshInspection(
         point_count=len(points),
         cell_count=len(tetrahedra),
@@ -288,6 +308,8 @@ def inspect_triangle_surface(points: np.ndarray, triangles: np.ndarray) -> MeshI
     nonmanifold = sum(1 for count in counts.values() if count > 2)
     lengths = _edge_lengths(points, triangles)
     quality = triangle_shape_quality(points, triangles)
+    metadata = _quality_summary(quality, "triangle_quality")
+    metadata.update(_topology_metadata(len(points), triangles))
     return MeshInspection(
         point_count=len(points),
         cell_count=len(triangles),
@@ -299,7 +321,7 @@ def inspect_triangle_surface(points: np.ndarray, triangles: np.ndarray) -> MeshI
         min_edge_length=float(lengths.min()) if len(lengths) else None,
         max_edge_length=float(lengths.max()) if len(lengths) else None,
         finite=bool(np.all(np.isfinite(points)) and np.all(np.isfinite(areas))),
-        metadata=_quality_summary(quality, "triangle_quality"),
+        metadata=metadata,
     )
 
 
@@ -312,8 +334,17 @@ def qc_from_inspection(
     checks = {
         "nonempty": inspection.point_count > 0 and inspection.cell_count > 0,
         "finite": inspection.finite,
+        "supported_geometry": bool(
+            inspection.tetra_count or inspection.triangle_count
+        ),
         "single_component": inspection.connected_components in {None, 1},
         "no_degenerate_cells": (inspection.degenerate_fraction or 0.0) == 0.0,
+        "no_unused_points": int(
+            inspection.metadata.get("unused_point_count", 0)
+        ) == 0,
+        "no_duplicate_cells": int(
+            inspection.metadata.get("duplicate_cell_count", 0)
+        ) == 0,
     }
     if inspection.tetra_count:
         checks["consistent_tetra_orientation"] = (
