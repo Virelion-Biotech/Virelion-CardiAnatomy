@@ -20,7 +20,15 @@ def _validate_cells(
     node_count: int,
     name: str,
 ) -> np.ndarray:
-    values = np.asarray(cells, dtype=int)
+    raw = np.asarray(cells)
+    if not np.issubdtype(raw.dtype, np.integer):
+        if (
+            not np.issubdtype(raw.dtype, np.number)
+            or not np.all(np.isfinite(raw))
+            or not np.all(raw == np.floor(raw))
+        ):
+            raise ValueError(f"{name} must contain finite integer indices")
+    values = raw.astype(np.int64, copy=False)
     if values.ndim != 2 or values.shape[1] != width:
         raise ValueError(f"{name} must have shape (M, {width})")
     if values.size and (values.min() < 0 or values.max() >= node_count):
