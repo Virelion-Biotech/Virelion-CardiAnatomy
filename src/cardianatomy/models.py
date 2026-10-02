@@ -62,9 +62,9 @@ def _safe_identifier(value: str, field_name: str) -> str:
 class ArtifactRef(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    artifact_id: str
+    artifact_id: str = Field(min_length=1)
     kind: ArtifactKind
-    uri: str
+    uri: str = Field(min_length=1)
     sha256: str | None = Field(
         default=None,
         min_length=64,
@@ -80,6 +80,14 @@ class ArtifactRef(BaseModel):
     acquisition_id: str | None = None
     derived_from: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_lineage(self) -> "ArtifactRef":
+        if len(self.derived_from) != len(set(self.derived_from)):
+            raise ValueError("derived_from must not contain duplicate artifact IDs")
+        if self.artifact_id in self.derived_from:
+            raise ValueError("artifact cannot be derived from itself")
+        return self
 
 
 class ImagingAcquisition(BaseModel):
@@ -108,13 +116,29 @@ class ImagingAcquisition(BaseModel):
 
     @model_validator(mode="after")
     def validate_geometry_metadata(self) -> "ImagingAcquisition":
-        if self.shape is not None and any(int(value) <= 0 for value in self.shape):
-            raise ValueError("shape dimensions must be strictly positive")
+        if self.shape is not None:
+            if not self.shape or any(int(value) <= 0 for value in self.shape):
+                raise ValueError("shape dimensions must be strictly positive")
         if self.voxel_spacing_mm is not None:
             spacing = np.asarray(self.voxel_spacing_mm, dtype=float)
-            if not np.all(np.isfinite(spacing)) or np.any(spacing <= 0):
+            if (
+                len(spacing) == 0
+                or not np.all(np.isfinite(spacing))
+                or np.any(spacing <= 0)
+            ):
                 raise ValueError(
                     "voxel_spacing_mm must contain finite positive values"
+                )
+            if self.shape is not None and len(spacing) != len(self.shape):
+                raise ValueError(
+                    "voxel_spacing_mm dimensionality must match shape"
+                )
+        for name, phase in self.selected_phases.items():
+            if phase < 0:
+                raise ValueError(f"selected phase {name!r} must be non-negative")
+            if self.phase_count is not None and phase >= self.phase_count:
+                raise ValueError(
+                    f"selected phase {name!r} is outside phase_count"
                 )
         return self
 
@@ -204,9 +228,9 @@ class RegistrationRef(BaseModel):
 class AnatomyLabel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    name: str
-    value: int
-    structure: str
+    name: str = Field(min_length=1)
+    value: int = Field(ge=0)
+    structure: str = Field(min_length=1)
     ontology_id: str | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -225,6 +249,9 @@ class GeometryQC(BaseModel):
     def consistent_status(self) -> "GeometryQC":
         if self.passed and (self.errors or any(not value for value in self.checks.values())):
             raise ValueError("passed=True is inconsistent with failed checks or errors")
+        for key, value in self.metrics.items():
+            if isinstance(value, float) and not math.isfinite(value):
+                raise ValueError(f"QC metric {key!r} must be finite")
         return self
 
 
@@ -243,6 +270,25 @@ class StageRecord(BaseModel):
     duration_seconds: float | None = Field(default=None, ge=0)
     warnings: list[str] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
+
+
+    @model_validator(mode="after")
+    def consistent_stage_status(self) -> "StageRecord":
+        if self.status == "ok" and self.errors:
+            raise ValueError("status='ok' is inconsistent with stage errors")
+        if self.status == "error" and not self.errors:
+            raise ValueError("status='error' requires at least one error")
+        if (
+            self.started_at is not None
+            and self.finished_at is not None
+            and self.finished_at < self.started_at
+        ):
+            raise ValueError("finished_at cannot precede started_at")
+        if self.duration_seconds is not None and not math.isfinite(
+            self.duration_seconds
+        ):
+            raise ValueError("duration_seconds must be finite")
+        return self
 
 
 class PipelinePlan(BaseModel):
