@@ -52,21 +52,48 @@ def stage_fingerprint(
     backend: str,
     input_artifacts: list,
     parameters: dict,
+    *,
+    context: dict | None = None,
 ) -> str:
     inputs = [
-        {
-            "artifact_id": item.artifact_id,
-            "sha256": item.sha256,
-            "uri": item.uri,
-            "kind": item.kind,
-        }
+        item.model_dump(mode="json")
         for item in sorted(input_artifacts, key=lambda value: value.artifact_id)
     ]
-    return sha256({"stage": stage, "backend": backend, "inputs": inputs, "parameters": parameters})
+    return sha256(
+        {
+            "stage": stage,
+            "backend": backend,
+            "inputs": inputs,
+            "parameters": parameters,
+            "context": context or {},
+        }
+    )
 
 
 def bundle_fingerprint(bundle: AnatomyBundle) -> str:
     return sha256(bundle.model_dump(mode="json", exclude={"bundle_fingerprint"}))
+
+
+def _bundle_stage_context(bundle: AnatomyBundle) -> dict:
+    return {
+        "frames": [item.model_dump(mode="json") for item in bundle.frames],
+        "registrations": [
+            item.model_dump(mode="json") for item in bundle.registrations
+        ],
+        "labels": [item.model_dump(mode="json") for item in bundle.labels],
+        "qc": None if bundle.qc is None else bundle.qc.model_dump(mode="json"),
+        "provenance": bundle.provenance,
+        "prior_stages": [
+            {
+                "stage": item.stage,
+                "backend": item.backend,
+                "status": item.status,
+                "fingerprint": item.fingerprint,
+                "output_artifact_ids": item.output_artifact_ids,
+            }
+            for item in bundle.stages
+        ],
+    }
 
 
 def _local_artifact_path(uri: str) -> Path | None:
@@ -92,6 +119,8 @@ def _restorable_artifacts(
     if ids != expected_ids or len(ids) != len(set(ids)):
         return None
     for artifact in artifacts:
+        if artifact.sha256 is None:
+            return None
         path = _local_artifact_path(artifact.uri)
         if path is None:
             continue
@@ -243,7 +272,13 @@ class PipelineExecutor:
             if backend is None or not backend.available():
                 raise BackendUnavailable(f"Stage backend unavailable: {stage}/{backend_name}")
             parameters = dict(plan.stage_parameters.get(stage, {}))
-            fingerprint = stage_fingerprint(stage, backend_name, bundle.artifacts, parameters)
+            fingerprint = stage_fingerprint(
+                stage,
+                backend_name,
+                bundle.artifacts,
+                parameters,
+                context=_bundle_stage_context(bundle),
+            )
             sidecar = workdir / f"stage-{stage}.json"
             if plan.resume and sidecar.is_file():
                 try:
@@ -257,6 +292,9 @@ class PipelineExecutor:
                     and previous_record.get("status") == "ok"
                     and previous_record.get("stage") == stage
                     and previous_record.get("backend") == backend_name
+                    and previous_record.get("parameters") == parameters
+                    and previous_record.get("input_artifact_ids")
+                    == [item.artifact_id for item in bundle.artifacts]
                 ):
                     expected_ids = previous_record.get("output_artifact_ids", [])
                     restored_artifacts = _restorable_artifacts(
