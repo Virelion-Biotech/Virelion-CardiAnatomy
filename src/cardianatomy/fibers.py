@@ -30,7 +30,13 @@ def orthonormal_local_frame(
     if l_raw.shape != c.shape:
         raise ValueError("longitudinal must match circumferential shape")
     l_unit = _normalize(l_raw, "longitudinal")
-    longitudinal_axis = l_unit - np.sum(l_unit * c, axis=1)[:, None] * c
+    projection = np.sum(l_unit * c, axis=1)
+    residual_scale = np.sqrt(np.maximum(0.0, 1.0 - projection**2))
+    if np.any(residual_scale <= 1e-8):
+        raise ValueError(
+            "circumferential and longitudinal directions are too nearly parallel"
+        )
+    longitudinal_axis = l_unit - projection[:, None] * c
     longitudinal_axis = _normalize(longitudinal_axis, "longitudinal")
     t = _normalize(np.cross(c, longitudinal_axis), "transmural")
     longitudinal_axis = _normalize(np.cross(t, c), "longitudinal")
