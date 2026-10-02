@@ -96,6 +96,20 @@ def _bundle_stage_context(bundle: AnatomyBundle) -> dict:
     }
 
 
+def _stage_output_fingerprint(
+    artifacts: list[dict],
+    qc: dict | None,
+    warnings: list[str],
+) -> str:
+    return sha256(
+        {
+            "artifacts": artifacts,
+            "qc": qc,
+            "warnings": warnings,
+        }
+    )
+
+
 def _local_artifact_path(uri: str) -> Path | None:
     parsed = urlparse(uri)
     if parsed.scheme == "file":
@@ -295,6 +309,18 @@ class PipelineExecutor:
                     and previous_record.get("parameters") == parameters
                     and previous_record.get("input_artifact_ids")
                     == [item.artifact_id for item in bundle.artifacts]
+                    and previous.get("output_fingerprint")
+                    == _stage_output_fingerprint(
+                        previous.get("artifacts", [])
+                        if isinstance(previous.get("artifacts"), list)
+                        else [],
+                        previous.get("qc")
+                        if isinstance(previous.get("qc"), dict)
+                        else None,
+                        previous_record.get("warnings", [])
+                        if isinstance(previous_record.get("warnings"), list)
+                        else [],
+                    )
                 ):
                     expected_ids = previous_record.get("output_artifact_ids", [])
                     restored_artifacts = _restorable_artifacts(
@@ -379,6 +405,18 @@ class PipelineExecutor:
                         None
                         if output.qc is None
                         else output.qc.model_dump(mode="json")
+                    ),
+                    "output_fingerprint": _stage_output_fingerprint(
+                        [
+                            item.model_dump(mode="json")
+                            for item in output.artifacts
+                        ],
+                        (
+                            None
+                            if output.qc is None
+                            else output.qc.model_dump(mode="json")
+                        ),
+                        output.warnings,
                     ),
                 },
             )
