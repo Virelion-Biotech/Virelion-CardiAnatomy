@@ -303,7 +303,39 @@ class AnatomyBundle(BaseModel):
     stages: list[StageRecord] = Field(default_factory=list)
     qc: GeometryQC | None = None
     provenance: dict[str, Any] = Field(default_factory=dict)
-    bundle_fingerprint: str | None = None
+    bundle_fingerprint: str | None = Field(
+        default=None,
+        min_length=64,
+        max_length=64,
+        pattern=r"^[0-9a-fA-F]{64}$",
+    )
+
+    @model_validator(mode="after")
+    def bundle_integrity(self) -> "AnatomyBundle":
+        artifact_ids = [item.artifact_id for item in self.artifacts]
+        if len(artifact_ids) != len(set(artifact_ids)):
+            raise ValueError("bundle contains duplicate artifact_id values")
+        frame_ids = [item.frame_id for item in self.frames]
+        if len(frame_ids) != len(set(frame_ids)):
+            raise ValueError("bundle contains duplicate frame_id values")
+        registration_ids = [item.registration_id for item in self.registrations]
+        if len(registration_ids) != len(set(registration_ids)):
+            raise ValueError("bundle contains duplicate registration_id values")
+        label_values = [item.value for item in self.labels]
+        if len(label_values) != len(set(label_values)):
+            raise ValueError("bundle contains duplicate anatomical label values")
+        if self.bundle_fingerprint is not None:
+            from .provenance import sha256
+
+            expected = sha256(
+                self.model_dump(
+                    mode="json",
+                    exclude={"bundle_fingerprint"},
+                )
+            )
+            if self.bundle_fingerprint.lower() != expected:
+                raise ValueError("bundle fingerprint does not match bundle contents")
+        return self
 
     def artifact_kinds(self) -> set[str]:
         return {artifact.kind for artifact in self.artifacts}
