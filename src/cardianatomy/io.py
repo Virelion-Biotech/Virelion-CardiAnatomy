@@ -8,6 +8,7 @@ import numpy as np
 from .models import DicomSeriesSummary, MeshInspection
 from .provenance import sha256
 from .qc import inspect_tetra_mesh, inspect_triangle_surface
+from .transforms import validate_affine
 
 
 def _positive_int_or_none(
@@ -164,14 +165,51 @@ def inspect_nifti(path: str | Path) -> dict[str, Any]:
         import nibabel as nib
     except ImportError as exc:
         raise RuntimeError("Install virelion-cardianatomy[io] for NIfTI support") from exc
-    image = nib.load(str(path))
+
+    source = Path(path)
+    if not source.is_file():
+        raise ValueError(f"NIfTI file does not exist: {source}")
+
+    image = nib.load(str(source))
+    shape = tuple(int(x) for x in image.shape)
     zooms = tuple(float(x) for x in image.header.get_zooms())
+    warnings: list[str] = []
+
+    spacing_valid = bool(
+        zooms
+        and np.all(np.isfinite(zooms))
+        and all(value > 0 for value in zooms)
+    )
+    if not spacing_valid:
+        warnings.append("invalid voxel spacing")
+
+    affine = np.asarray(image.affine, dtype=float)
+    finite_affine = bool(
+        affine.shape == (4, 4)
+        and np.all(np.isfinite(affine))
+    )
+    affine_valid = False
+    if finite_affine:
+        try:
+            validate_affine(affine)
+        except ValueError:
+            warnings.append("invalid affine transform")
+        else:
+            affine_valid = True
+    else:
+        warnings.append("non-finite or malformed affine")
+
+    if not shape or any(value <= 0 for value in shape):
+        warnings.append("invalid image shape")
+
     return {
-        "path": str(path),
-        "shape": tuple(int(x) for x in image.shape),
-        "voxel_spacing": zooms,
-        "affine": np.asarray(image.affine, dtype=float).tolist(),
-        "finite_affine": bool(np.all(np.isfinite(image.affine))),
+        "path": str(source),
+        "shape": shape,
+        "voxel_spacing": zooms if spacing_valid else None,
+        "affine": affine.tolist() if finite_affine else None,
+        "finite_affine": finite_affine,
+        "valid_affine": affine_valid,
+        "warnings": warnings,
     }
 
 
