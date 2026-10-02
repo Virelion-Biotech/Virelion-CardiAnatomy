@@ -46,13 +46,21 @@ def bounding_box(points: np.ndarray) -> dict[str, list[float]]:
 
 def triangle_surface_area(points: np.ndarray, triangles: np.ndarray) -> float:
     points = np.asarray(points, dtype=float)
-    triangles = np.asarray(triangles, dtype=int)
+    triangles = np.asarray(triangles)
     if points.ndim != 2 or points.shape[1] != 3:
         raise ValueError("points must have shape (N, 3)")
     if not np.all(np.isfinite(points)):
         raise ValueError("points must be finite")
     if triangles.ndim != 2 or triangles.shape[1] != 3:
         raise ValueError("triangles must have shape (M, 3)")
+    if not np.issubdtype(triangles.dtype, np.integer):
+        if (
+            not np.issubdtype(triangles.dtype, np.number)
+            or not np.all(np.isfinite(triangles))
+            or not np.all(triangles == np.floor(triangles))
+        ):
+            raise ValueError("triangles must contain finite integer indices")
+        triangles = triangles.astype(np.int64)
     if triangles.size and (triangles.min() < 0 or triangles.max() >= len(points)):
         raise ValueError("triangles contain out-of-range point indices")
     a, b, c = (points[triangles[:, index]] for index in range(3))
@@ -80,13 +88,21 @@ def tetrahedral_volume(points: np.ndarray, tetrahedra: np.ndarray) -> float:
 def closed_surface_signed_volume(points: np.ndarray, triangles: np.ndarray) -> float:
     """Compute oriented volume of a closed triangular surface."""
     points = np.asarray(points, dtype=float)
-    triangles = np.asarray(triangles, dtype=int)
+    triangles = np.asarray(triangles)
     if points.ndim != 2 or points.shape[1] != 3:
         raise ValueError("points must have shape (N, 3)")
     if not np.all(np.isfinite(points)):
         raise ValueError("points must be finite")
     if triangles.ndim != 2 or triangles.shape[1] != 3:
         raise ValueError("triangles must have shape (M, 3)")
+    if not np.issubdtype(triangles.dtype, np.integer):
+        if (
+            not np.issubdtype(triangles.dtype, np.number)
+            or not np.all(np.isfinite(triangles))
+            or not np.all(triangles == np.floor(triangles))
+        ):
+            raise ValueError("triangles must contain finite integer indices")
+        triangles = triangles.astype(np.int64)
     if triangles.size and (triangles.min() < 0 or triangles.max() >= len(points)):
         raise ValueError("triangles contain out-of-range point indices")
     shifted = points - points[0]
@@ -104,13 +120,21 @@ def closed_surface_signed_volume(points: np.ndarray, triangles: np.ndarray) -> f
 
 def mesh_scale_metrics(points: np.ndarray, cells: np.ndarray) -> dict[str, float]:
     points = np.asarray(points, dtype=float)
-    cells = np.asarray(cells, dtype=int)
+    cells = np.asarray(cells)
     if points.ndim != 2 or points.shape[1] != 3:
         raise ValueError("points must have shape (N, 3)")
     if not np.all(np.isfinite(points)):
         raise ValueError("points must be finite")
     if cells.ndim != 2:
         raise ValueError("cells must be a 2D connectivity array")
+    if not np.issubdtype(cells.dtype, np.integer):
+        if (
+            not np.issubdtype(cells.dtype, np.number)
+            or not np.all(np.isfinite(cells))
+            or not np.all(cells == np.floor(cells))
+        ):
+            raise ValueError("cells must contain finite integer indices")
+        cells = cells.astype(np.int64)
     if cells.size and (cells.min() < 0 or cells.max() >= len(points)):
         raise ValueError("cells contain out-of-range point indices")
     edges: set[tuple[int, int]] = set()
