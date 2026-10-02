@@ -25,6 +25,19 @@ def _row_norm(vectors: np.ndarray) -> np.ndarray:
     )
 
 
+def _stable_rms(values: np.ndarray) -> float:
+    values = np.asarray(values, dtype=float)
+    if not np.all(np.isfinite(values)):
+        raise OverflowError("RMS input contains non-finite values")
+    scale = float(np.max(np.abs(values))) if values.size else 0.0
+    if scale == 0.0:
+        return 0.0
+    result = scale * float(np.sqrt(np.mean((values / scale) ** 2)))
+    if not np.isfinite(result):
+        raise OverflowError("RMS exceeds float64 range")
+    return result
+
+
 @dataclass(frozen=True)
 class RigidRegistrationResult:
     matrix: np.ndarray
@@ -95,7 +108,7 @@ def estimate_rigid_transform(
     error = _row_norm(transformed - target)
     return RigidRegistrationResult(
         matrix=matrix,
-        rms_error=float(np.sqrt(np.mean(error**2))),
+        rms_error=_stable_rms(error),
         max_error=float(error.max()),
         source_centroid=source_centroid,
         target_centroid=target_centroid,
