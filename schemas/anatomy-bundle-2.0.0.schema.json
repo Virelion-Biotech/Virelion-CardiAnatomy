@@ -4,10 +4,10 @@
       "additionalProperties": false,
       "properties": {
         "metadata": {"additionalProperties": true, "title": "Metadata", "type": "object"},
-        "name": {"title": "Name", "type": "string"},
+        "name": {"minLength": 1, "title": "Name", "type": "string"},
         "ontology_id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Ontology Id"},
-        "structure": {"title": "Structure", "type": "string"},
-        "value": {"title": "Value", "type": "integer"}
+        "structure": {"minLength": 1, "title": "Structure", "type": "string"},
+        "value": {"minimum": 0, "title": "Value", "type": "integer"}
       },
       "required": ["name","value","structure"],
       "title": "AnatomyLabel",
@@ -17,7 +17,7 @@
       "additionalProperties": false,
       "properties": {
         "acquisition_id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Acquisition Id"},
-        "artifact_id": {"title": "Artifact Id", "type": "string"},
+        "artifact_id": {"minLength": 1, "title": "Artifact Id", "type": "string"},
         "derived_from": {"items": {"type": "string"}, "title": "Derived From", "type": "array"},
         "frame_id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Frame Id"},
         "kind": {
@@ -32,7 +32,7 @@
         "size_bytes": {"anyOf": [{"minimum": 0, "type": "integer"}, {"type": "null"}], "default": null, "title": "Size Bytes"},
         "study_id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Study Id"},
         "subject_id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Subject Id"},
-        "uri": {"title": "Uri", "type": "string"}
+        "uri": {"minLength": 1, "title": "Uri", "type": "string"}
       },
       "required": ["artifact_id","kind","uri"],
       "title": "ArtifactRef",
@@ -112,7 +112,7 @@
   "properties": {
     "acquisition_id": {"title": "Acquisition Id", "type": "string"},
     "artifacts": {"items": {"$ref": "#/$defs/ArtifactRef"}, "title": "Artifacts", "type": "array"},
-    "bundle_fingerprint": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Bundle Fingerprint"},
+    "bundle_fingerprint": {"anyOf": [{"maxLength": 64, "minLength": 64, "pattern": "^[0-9a-fA-F]{64}$", "type": "string"}, {"type": "null"}], "default": null, "title": "Bundle Fingerprint"},
     "contract_version": {"default": "2.0.0", "title": "Contract Version", "type": "string"},
     "frames": {"items": {"$ref": "#/$defs/CoordinateFrame"}, "title": "Frames", "type": "array"},
     "labels": {"items": {"$ref": "#/$defs/AnatomyLabel"}, "title": "Labels", "type": "array"},
