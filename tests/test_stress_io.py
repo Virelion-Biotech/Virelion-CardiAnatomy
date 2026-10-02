@@ -2,7 +2,12 @@ from pathlib import Path
 
 import pytest
 
-from cardianatomy import inspect_dicom_directory
+from cardianatomy import (
+    inspect_dicom_directory,
+    inspect_mesh_file,
+    inspect_nifti,
+    qc_from_inspection,
+)
 
 
 def _write_minimal_dicom(
@@ -139,3 +144,94 @@ def test_dicom_free_text_requires_explicit_opt_in(tmp_path: Path) -> None:
         include_free_text=True,
     )[0]
     assert summary.description == description
+
+
+def test_valid_nifti_reports_usable_spacing_and_affine(tmp_path: Path) -> None:
+    nib = pytest.importorskip("nibabel")
+    import numpy as np
+
+    path = tmp_path / "valid.nii.gz"
+    image = nib.Nifti1Image(np.zeros((4, 5, 6), dtype=np.uint8), np.eye(4))
+    nib.save(image, str(path))
+
+    result = inspect_nifti(path)
+    assert result["shape"] == (4, 5, 6)
+    assert result["voxel_spacing"] is not None
+    assert result["finite_affine"]
+    assert result["valid_affine"]
+    assert result["warnings"] == []
+
+
+def test_nifti_nonfinite_metadata_is_json_safe(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    nib = pytest.importorskip("nibabel")
+    import numpy as np
+
+    path = tmp_path / "fake.nii"
+    path.write_bytes(b"fixture")
+
+    class Header:
+        @staticmethod
+        def get_zooms():
+            return (1.0, np.nan, 2.0)
+
+    class Image:
+        shape = (2, 2, 2)
+        header = Header()
+        affine = np.array(
+            [
+                [1.0, 0.0, 0.0, 0.0],
+                [0.0, np.nan, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ]
+        )
+
+    monkeypatch.setattr(nib, "load", lambda _: Image())
+    result = inspect_nifti(path)
+    assert result["voxel_spacing"] is None
+    assert result["affine"] is None
+    assert not result["finite_affine"]
+    assert not result["valid_affine"]
+    assert "invalid voxel spacing" in result["warnings"]
+
+
+def test_unsupported_mesh_cell_types_fail_qc(tmp_path: Path) -> None:
+    meshio = pytest.importorskip("meshio")
+    import numpy as np
+
+    path = tmp_path / "lines.vtu"
+    meshio.write_points_cells(
+        path,
+        np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]]),
+        [("line", np.array([[0, 1]], dtype=int))],
+    )
+    inspection = inspect_mesh_file(path)
+    qc = qc_from_inspection(inspection)
+    assert not qc.passed
+    assert not qc.checks["supported_geometry"]
+
+
+def test_nonfinite_mesh_coordinates_fail_qc(tmp_path: Path) -> None:
+    meshio = pytest.importorskip("meshio")
+    import numpy as np
+
+    path = tmp_path / "nan-surface.vtu"
+    meshio.write_points_cells(
+        path,
+        np.array(
+            [
+                [0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0],
+                [0.0, np.nan, 0.0],
+            ]
+        ),
+        [("triangle", np.array([[0, 1, 2]], dtype=int))],
+    )
+    inspection = inspect_mesh_file(path)
+    qc = qc_from_inspection(inspection)
+    assert not inspection.finite
+    assert not qc.passed
+    assert not qc.checks["finite"]
