@@ -23,6 +23,7 @@ from cardianatomy import (
     label_volumes_ml,
     mesh_scale_metrics,
     point_set_distance_summary,
+    summarize_mesh_sequence,
     segmentation_overlap_metrics,
     tetra_mean_ratio_quality,
     tetra_scaled_jacobian_quality,
@@ -316,3 +317,48 @@ def test_anatomy_request_rejects_unsafe_subject_even_if_acquisition_matches() ->
                 ),
             ),
         )
+
+
+def test_registration_metrics_stay_finite_at_large_coordinate_scale() -> None:
+    source = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1e150, 0.0, 0.0],
+            [0.0, 2e150, 0.0],
+            [0.0, 0.0, 3e150],
+        ]
+    )
+    target = source + np.array([5e149, -2e149, 1e149])
+    result = estimate_rigid_transform(source, target)
+    assert np.isfinite(result.rms_error)
+    assert np.isfinite(result.max_error)
+    assert np.all(np.isfinite(result.matrix))
+
+
+def test_motion_metrics_stay_finite_for_large_finite_displacements() -> None:
+    frames = np.array(
+        [
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+            [[1e200, 0.0, 0.0], [0.0, 1e200, 0.0]],
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+        ]
+    )
+    summary = summarize_mesh_sequence(frames)
+    assert all(np.isfinite(summary.rms_displacement_to_reference))
+    assert all(np.isfinite(summary.rms_step_displacement))
+    assert np.isfinite(summary.mean_vertex_path_length)
+    closure = cyclic_closure_error(frames)
+    assert closure == {"mean": 0.0, "rms": 0.0, "max": 0.0}
+
+
+def test_motion_rejects_unrepresentable_coordinate_difference() -> None:
+    frames = np.array(
+        [
+            [[1e308, 0.0, 0.0]],
+            [[-1e308, 0.0, 0.0]],
+        ]
+    )
+    with pytest.raises(OverflowError):
+        summarize_mesh_sequence(frames)
+    with pytest.raises(OverflowError):
+        cyclic_closure_error(frames)
