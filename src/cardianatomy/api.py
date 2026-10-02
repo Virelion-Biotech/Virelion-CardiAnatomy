@@ -158,7 +158,7 @@ class AnatomyAPI:
         points = np.asarray(payload["points"], dtype=float)
         output: dict[str, Any] = {"bounding_box": bounding_box(points)}
         if "triangles" in payload:
-            triangles = np.asarray(payload["triangles"], dtype=int)
+            triangles = np.asarray(payload["triangles"])
             output["surface_area"] = triangle_surface_area(points, triangles)
             output["signed_surface_volume"] = closed_surface_signed_volume(
                 points, triangles
@@ -166,7 +166,7 @@ class AnatomyAPI:
         if "tetrahedra" in payload:
             output["tetrahedral_volume"] = tetrahedral_volume(
                 points,
-                np.asarray(payload["tetrahedra"], dtype=int),
+                np.asarray(payload["tetrahedra"]),
             )
         return output
 
@@ -262,12 +262,12 @@ class AnatomyAPI:
             reference_cells=(
                 None
                 if reference_cells is None
-                else np.asarray(reference_cells, dtype=int)
+                else np.asarray(reference_cells)
             ),
             target_cells=(
                 None
                 if target_cells is None
-                else np.asarray(target_cells, dtype=int)
+                else np.asarray(target_cells)
             ),
         )
         output = {
@@ -284,10 +284,10 @@ class AnatomyAPI:
         }
         if reference_cells is not None and target_cells is not None:
             output["reference_connectivity_sha256"] = connectivity_fingerprint(
-                np.asarray(reference_cells, dtype=int)
+                np.asarray(reference_cells)
             )
             output["target_connectivity_sha256"] = connectivity_fingerprint(
-                np.asarray(target_cells, dtype=int)
+                np.asarray(target_cells)
             )
         return output
 
