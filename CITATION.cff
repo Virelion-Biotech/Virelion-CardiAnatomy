@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use Virelion CardiAnatomy, cite this software and the upstream scientific methods/backends you actually use."
+title: "Virelion CardiAnatomy"
+type: software
+authors:
+  - name: "Virelion Biotech"
+repository-code: "https://github.com/Virelion-Biotech/Virelion-CardiAnatomy"
+license: "AGPL-3.0-or-later"
+version: "0.4.0"
+date-released: "2026-10-02"

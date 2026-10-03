@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cardianatomy-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  base:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -e '.[dev]'
+      - run: ruff check src tests scripts
+      - run: pytest -q
+      - run: python scripts/generate_schemas.py --check
+      - run: cardianatomy doctor > /tmp/cardianatomy-doctor.json
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip build
+      - run: python -m build
+      - run: python -m pip install dist/*.whl
+      - run: cardianatomy tools
+      - run: cardianatomy presets
+      - run: cardianatomy cine-phases examples/volume_curve.json
+      - run: cardianatomy compose-affines examples/affine_chain.json
+      - run: cardianatomy compare-correspondence examples/correspondence_payload.json
+      - run: cardianatomy summarize-motion examples/motion_payload.json
+      - run: cardianatomy audit-manifest examples/toolchain_manifest.json

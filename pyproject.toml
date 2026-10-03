@@ -1,0 +1,53 @@
+[project]
+name = "virelion-cardianatomy"
+version = "0.4.0"
+description = "Patient-specific cardiac anatomy, geometry, registration, microstructure, scar, and QC infrastructure for Virelion HeartTwin"
+requires-python = ">=3.10"
+license = {text = "AGPL-3.0-or-later"}
+authors = [{name = "Virelion Biotech"}]
+keywords = ["cardiac", "digital-twin", "cmr", "ct", "mesh", "anatomy", "segmentation"]
+dependencies = [
+  "pydantic>=2.6,<3",
+  "numpy>=1.26,<3",
+]
+
+[project.urls]
+Homepage = "https://github.com/Virelion-Biotech/Virelion-CardiAnatomy"
+Source = "https://github.com/Virelion-Biotech/Virelion-CardiAnatomy"
+Issues = "https://github.com/Virelion-Biotech/Virelion-CardiAnatomy/issues"
+
+[project.optional-dependencies]
+io = [
+  "pydicom>=2.4,<4",
+  "nibabel>=5.2,<6",
+  "meshio>=5.3,<6",
+]
+dev = [
+  "pytest>=8",
+  "hypothesis>=6.100",
+  "ruff>=0.6",
+  "jsonschema>=4.23",
+  "pydicom>=2.4,<4",
+  "nibabel>=5.2,<6",
+  "meshio>=5.3,<6",
+]
+
+[project.scripts]
+cardianatomy = "cardianatomy.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["I001"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
