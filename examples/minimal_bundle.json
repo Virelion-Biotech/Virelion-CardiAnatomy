@@ -1,0 +1,18 @@
+{
+  "contract_version": "2.0.0",
+  "subject_id": "research-subject-001",
+  "study_id": "study-001",
+  "acquisition_id": "cmr-001",
+  "artifacts": [
+    {"artifact_id": "seg-001", "kind": "segmentation", "uri": "artifact://seg-001"},
+    {"artifact_id": "surf-001", "kind": "surface_mesh", "uri": "artifact://surf-001"},
+    {"artifact_id": "vol-001", "kind": "volume_mesh", "uri": "artifact://vol-001"}
+  ],
+  "frames": [],
+  "registrations": [],
+  "labels": [],
+  "stages": [],
+  "qc": {"passed": true, "checks": {"mesh_nonempty": true}, "metrics": {}, "warnings": [], "errors": []},
+  "provenance": {"example": true},
+  "bundle_fingerprint": null
+}

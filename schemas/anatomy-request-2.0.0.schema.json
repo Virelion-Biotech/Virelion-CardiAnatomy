@@ -1,0 +1,84 @@
+{
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "acquisition_id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Acquisition Id"},
+        "artifact_id": {"minLength": 1, "title": "Artifact Id", "type": "string"},
+        "derived_from": {"items": {"type": "string"}, "title": "Derived From", "type": "array"},
+        "frame_id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Frame Id"},
+        "kind": {
+          "enum": ["dicom_series","nifti_image","segmentation","contour_set","guidepoint_set","landmark_set","surface_mesh","volume_mesh","chamber_tags","valve_tags","coordinate_field","fiber_field","sheet_field","scar_map","motion_field","registration","qc_report","model_fit","report","other"],
+          "title": "Kind",
+          "type": "string"
+        },
+        "media_type": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Media Type"},
+        "metadata": {"additionalProperties": true, "title": "Metadata", "type": "object"},
+        "producer": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Producer"},
+        "sha256": {"anyOf": [{"maxLength": 64, "minLength": 64, "pattern": "^[0-9a-fA-F]{64}$", "type": "string"}, {"type": "null"}], "default": null, "title": "Sha256"},
+        "size_bytes": {"anyOf": [{"minimum": 0, "type": "integer"}, {"type": "null"}], "default": null, "title": "Size Bytes"},
+        "study_id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Study Id"},
+        "subject_id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Subject Id"},
+        "uri": {"minLength": 1, "title": "Uri", "type": "string"}
+      },
+      "required": ["artifact_id","kind","uri"],
+      "title": "ArtifactRef",
+      "type": "object"
+    },
+    "ImagingAcquisition": {
+      "additionalProperties": false,
+      "description": "Geometry-relevant acquisition metadata only; PHI is intentionally excluded.",
+      "properties": {
+        "acquired_at": {"anyOf": [{"format": "date-time", "type": "string"}, {"type": "null"}], "default": null, "title": "Acquired At"},
+        "acquisition_id": {"title": "Acquisition Id", "type": "string"},
+        "coordinate_system": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Coordinate System"},
+        "metadata": {"additionalProperties": true, "title": "Metadata", "type": "object"},
+        "modality": {"enum": ["CMR","CT","ECHO","EAM","OTHER"], "title": "Modality", "type": "string"},
+        "phase_count": {"anyOf": [{"minimum": 1, "type": "integer"}, {"type": "null"}], "default": null, "title": "Phase Count"},
+        "protocol": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Protocol"},
+        "selected_phases": {"additionalProperties": {"type": "integer"}, "title": "Selected Phases", "type": "object"},
+        "shape": {"anyOf": [{"items": {"type": "integer"}, "type": "array"}, {"type": "null"}], "default": null, "title": "Shape"},
+        "source": {"$ref": "#/$defs/ArtifactRef"},
+        "study_id": {"title": "Study Id", "type": "string"},
+        "subject_id": {"title": "Subject Id", "type": "string"},
+        "voxel_spacing_mm": {"anyOf": [{"items": {"type": "number"}, "type": "array"}, {"type": "null"}], "default": null, "title": "Voxel Spacing Mm"}
+      },
+      "required": ["subject_id","study_id","acquisition_id","modality","source"],
+      "title": "ImagingAcquisition",
+      "type": "object"
+    },
+    "PipelinePlan": {
+      "additionalProperties": false,
+      "properties": {
+        "backends": {"additionalProperties": {"type": "string"}, "title": "Backends", "type": "object"},
+        "resume": {"default": true, "title": "Resume", "type": "boolean"},
+        "stage_parameters": {"additionalProperties": {"additionalProperties": true, "type": "object"}, "title": "Stage Parameters", "type": "object"},
+        "stages": {
+          "items": {"enum": ["ingest","view_selection","phase_harmonization","segmentation","contours","surface_fit","surface_mesh","volume_mesh","coordinates","microstructure","scar","registration","qc","export"], "type": "string"},
+          "title": "Stages",
+          "type": "array"
+        }
+      },
+      "required": ["stages"],
+      "title": "PipelinePlan",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "acquisition": {"$ref": "#/$defs/ImagingAcquisition"},
+    "backend": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Backend"},
+    "output_root": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Output Root"},
+    "parameters": {"additionalProperties": true, "title": "Parameters", "type": "object"},
+    "plan": {"anyOf": [{"$ref": "#/$defs/PipelinePlan"}, {"type": "null"}], "default": null},
+    "requested_outputs": {
+      "items": {"enum": ["dicom_series","nifti_image","segmentation","contour_set","guidepoint_set","landmark_set","surface_mesh","volume_mesh","chamber_tags","valve_tags","coordinate_field","fiber_field","sheet_field","scar_map","motion_field","registration","qc_report","model_fit","report","other"], "type": "string"},
+      "title": "Requested Outputs",
+      "type": "array"
+    },
+    "subject_id": {"title": "Subject Id", "type": "string"}
+  },
+  "required": ["subject_id","acquisition"],
+  "title": "AnatomyRequest",
+  "type": "object"
+}

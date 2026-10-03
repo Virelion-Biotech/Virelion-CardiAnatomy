@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "backends": {
+      "additionalProperties": {"type": "string"},
+      "title": "Backends",
+      "type": "object"
+    },
+    "resume": {"default": true, "title": "Resume", "type": "boolean"},
+    "stage_parameters": {
+      "additionalProperties": {"additionalProperties": true, "type": "object"},
+      "title": "Stage Parameters",
+      "type": "object"
+    },
+    "stages": {
+      "items": {
+        "enum": ["ingest","view_selection","phase_harmonization","segmentation","contours","surface_fit","surface_mesh","volume_mesh","coordinates","microstructure","scar","registration","qc","export"],
+        "type": "string"
+      },
+      "title": "Stages",
+      "type": "array"
+    }
+  },
+  "required": ["stages"],
+  "title": "PipelinePlan",
+  "type": "object"
+}
