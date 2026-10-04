@@ -231,3 +231,28 @@ def test_point_validation_api_rejects_fractional_block_size() -> None:
                 "block_size": 1.5,
             }
         )
+
+
+def test_validate_canonicalizes_missing_bundle_fingerprint() -> None:
+    bundle = {
+        "contract_version": "2.0.0",
+        "subject_id": "fingerprint-canary",
+        "study_id": "study",
+        "acquisition_id": "acq",
+        "artifacts": [
+            {"artifact_id": "surface", "kind": "surface_mesh", "uri": "memory://surface"},
+            {"artifact_id": "volume", "kind": "volume_mesh", "uri": "memory://volume"},
+            {"artifact_id": "coordinates", "kind": "coordinate_field", "uri": "memory://coordinates"},
+            {"artifact_id": "fibres", "kind": "fiber_field", "uri": "memory://fibres"},
+        ],
+        "qc": {"passed": True, "checks": {"fixture": True}},
+    }
+    api = AnatomyAPI()
+    first = api.validate({"target": "ep", "bundle": bundle})
+    fingerprint = first["bundle_fingerprint"]
+    assert isinstance(fingerprint, str)
+    assert len(fingerprint) == 64
+
+    replay = {**bundle, "bundle_fingerprint": fingerprint}
+    second = api.validate({"target": "ep", "bundle": replay})
+    assert second["bundle_fingerprint"] == fingerprint

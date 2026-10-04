@@ -23,6 +23,7 @@ from .models import (
     FiberAngleProfile,
     ScarThresholdSpec,
 )
+from .pipeline import bundle_fingerprint
 from .presets import preset_catalog
 from .qc import qc_from_inspection
 from .registration import estimate_rigid_transform
@@ -118,6 +119,8 @@ class AnatomyAPI:
         target = str(payload.get("target", "baseline"))
         raw_bundle = payload.get("bundle", payload)
         bundle = AnatomyBundle.model_validate(raw_bundle)
+        if bundle.bundle_fingerprint is None:
+            bundle.bundle_fingerprint = bundle_fingerprint(bundle)
         self.service.require_ready(bundle, target=target)
         return {
             "ready": True,
