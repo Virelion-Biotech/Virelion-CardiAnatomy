@@ -2,26 +2,28 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
 from .api import AnatomyAPI
 from .io import inspect_dicom_directory, inspect_mesh_file, inspect_nifti
-from .models import AnatomyBundle
+from .models import AnatomyBundle, AnatomyRequest
 from .provenance import file_sha256
 from .qc import qc_from_inspection
 from .report import render_html_report
 from .service import CardiAnatomyService
+from .serialization import read_json, write_json_atomic, write_text_atomic
 
 
 def _load_json(path: str | Path) -> dict:
-    return json.loads(Path(path).read_text(encoding="utf-8"))
+    return read_json(path)
 
 
 def _write_json(value: object) -> None:
-    print(json.dumps(value, indent=2, sort_keys=True, default=str))
+    print(json.dumps(value, indent=2, sort_keys=True, allow_nan=False))
 
 
-def main() -> int:
+def _run(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="cardianatomy")
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -116,9 +118,38 @@ def main() -> int:
     )
     motion.add_argument("payload")
 
-    args = parser.parse_args()
+    build = sub.add_parser("build", help="Execute a declared anatomy pipeline")
+    build.add_argument("request")
+    build.add_argument("--output", required=True)
+    build.add_argument("--target", choices=["baseline", "surface", "ep", "mechanics", "flow"])
+    evaluate = sub.add_parser("evaluate", help="Evaluate geometry or reference metrics")
+    evaluate.add_argument(
+        "operation",
+        choices=[
+            "geometry_measure",
+            "segmentation_qc",
+            "validation_segmentation",
+            "validation_points",
+            "reference_microstructure",
+            "scar_classify",
+            "series_rank",
+        ],
+    )
+    evaluate.add_argument("payload")
+    args = parser.parse_args(argv)
     api = AnatomyAPI(CardiAnatomyService())
 
+    if args.command == "build":
+        bundle = api.service.build(AnatomyRequest.model_validate(_load_json(args.request)))
+        write_json_atomic(args.output, bundle.model_dump(mode="json"))
+        if args.target:
+            api.service.require_ready(bundle, args.target)
+        _write_json({"output": args.output, "bundle_fingerprint": bundle.bundle_fingerprint})
+        return 0
+    if args.command == "evaluate":
+        result = getattr(api, args.operation)(_load_json(args.payload))
+        _write_json(result)
+        return 1 if result.get("passed") is False else 0
     if args.command == "doctor":
         health = api.health()
         health["external_tools"] = api.tools()["tools"]
@@ -151,7 +182,7 @@ def main() -> int:
                 "qc": qc.model_dump(mode="json"),
             }
         )
-        return 0
+        return 0 if qc.passed else 1
     if args.command == "inspect-dicom":
         _write_json(
             [
@@ -169,7 +200,7 @@ def main() -> int:
         return 0
     if args.command == "report":
         bundle = AnatomyBundle.model_validate(_load_json(args.bundle))
-        Path(args.output).write_text(render_html_report(bundle), encoding="utf-8")
+        write_text_atomic(args.output, render_html_report(bundle))
         _write_json({"output": args.output})
         return 0
     if args.command == "register-rigid":
@@ -185,28 +216,17 @@ def main() -> int:
     if args.command == "audit-manifest":
         payload = _load_json(args.manifest)
         payload["allow_restricted"] = args.allow_restricted
-        _write_json(api.manifest_audit(payload))
-        return 0
+        result = api.manifest_audit(payload)
+        _write_json(result)
+        return 0 if result["valid"] else 1
     if args.command == "cine-phases":
-        _write_json(
-            api.cine_phases(
-                {"volumes_ml": _load_json(args.volumes)}
-            )
-        )
+        _write_json(api.cine_phases({"volumes_ml": _load_json(args.volumes)}))
         return 0
     if args.command == "compose-affines":
-        _write_json(
-            api.transforms_compose(
-                {"matrices": _load_json(args.matrices)}
-            )
-        )
+        _write_json(api.transforms_compose({"matrices": _load_json(args.matrices)}))
         return 0
     if args.command == "invert-affine":
-        _write_json(
-            api.transforms_invert(
-                {"matrix": _load_json(args.matrix)}
-            )
-        )
+        _write_json(api.transforms_invert({"matrix": _load_json(args.matrix)}))
         return 0
     if args.command == "compare-correspondence":
         _write_json(api.correspondence_compare(_load_json(args.payload)))
@@ -215,3 +235,19 @@ def main() -> int:
         _write_json(api.motion_summarize(_load_json(args.payload)))
         return 0
     return 2
+
+
+def main(argv=None) -> int:
+    try:
+        return _run(argv)
+    except (
+        ValueError,
+        TypeError,
+        KeyError,
+        OSError,
+        RuntimeError,
+        ImportError,
+        OverflowError,
+    ) as exc:
+        print(json.dumps({"error": str(exc)}, allow_nan=False), file=sys.stderr)
+        return 2

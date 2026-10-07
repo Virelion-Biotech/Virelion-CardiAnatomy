@@ -45,3 +45,13 @@ See `docs/RESEARCH_SURVEY_2026-10-01.md` for the engineering synthesis.
 CardiAnatomy 0.4.0 adds command adapters and toolchain manifests but does not vendor source code from the upstream projects listed above. Permissively licensed tools are invoked through explicit adapters. Copyleft, restricted, or unresolved-license projects remain separate processes or architecture references unless their deployment terms are explicitly reviewed.
 
 The license of a software repository does not automatically cover pretrained weights, atlases, statistical shape models, example clinical datasets, or other external assets. Those assets are tracked separately by `ToolchainManifest`.
+
+## CardioMesh validation fixtures
+
+Two unchanged, gzip-compressed public geometry fixtures from
+`ccmim/CardioMesh` revision `211710420e3504563fe18ba73980e2663ce68fc6`
+are retained under `validation/data`. The repository's MIT license and copyright
+notice (CISTIB-RSE, 2020) are preserved in `CardioMesh-LICENSE.txt`.
+The data manifest records exact source URLs and uncompressed SHA-256 checksums.
+No separate data license was found in the reviewed repository. These are
+software format and negative QC fixtures, not clinical reference annotations.

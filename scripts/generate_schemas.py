@@ -24,20 +24,26 @@ def main() -> int:
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1] / "schemas"
     root.mkdir(exist_ok=True)
+    packaged = root.parent / "src/cardianatomy/schemas"
+    packaged.mkdir(exist_ok=True)
     stale = []
-    for filename, schema in SCHEMAS.items():
-        path = root / filename
+    for directory, filename, schema in (
+        (directory, filename, schema)
+        for directory in (root, packaged)
+        for filename, schema in SCHEMAS.items()
+    ):
+        path = directory / filename
         if args.check:
             if not path.exists():
-                stale.append(filename)
+                stale.append(str(path.relative_to(root.parent)))
                 continue
             try:
                 current = json.loads(path.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError):
-                stale.append(filename)
+                stale.append(str(path.relative_to(root.parent)))
                 continue
             if current != schema:
-                stale.append(filename)
+                stale.append(str(path.relative_to(root.parent)))
         else:
             path.write_text(payload(schema), encoding="utf-8")
     if stale:

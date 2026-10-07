@@ -56,6 +56,12 @@ def _safe_identifier(value: str, field_name: str) -> str:
         raise ValueError(f"{field_name} must not be empty")
     if value in {".", ".."} or any(token in value for token in ("/", "\\", "\x00")):
         raise ValueError(f"{field_name} contains unsafe path characters")
+    reserved = {"CON", "PRN", "AUX", "NUL"} | {
+        f"{prefix}{n}" for prefix in ("COM", "LPT") for n in range(1, 10)
+    }
+    if (value.endswith((".", " ")) or value.split(".")[0].upper() in reserved
+            or any(ord(char) < 32 or char in ':<>"|?*' for char in value)):
+        raise ValueError(f"{field_name} is not a portable filesystem identifier")
     return value
 
 
@@ -386,6 +392,13 @@ class AnatomyBundle(BaseModel):
     def artifact_kinds(self) -> set[str]:
         return {artifact.kind for artifact in self.artifacts}
 
+    def _qc_covers(self, kind: str) -> bool:
+        return self.qc is not None and self.qc.passed and (
+            self.qc.artifact_id is None
+            or any(a.kind == kind and a.artifact_id == self.qc.artifact_id
+                   for a in self.artifacts)
+        )
+
     @property
     def surface_ready(self) -> bool:
         kinds = self.artifact_kinds()
@@ -396,26 +409,25 @@ class AnatomyBundle(BaseModel):
         kinds = self.artifact_kinds()
         return (
             {"surface_mesh", "volume_mesh", "coordinate_field", "fiber_field"} <= kinds
-            and self.qc is not None
-            and self.qc.passed
+            and self._qc_covers("volume_mesh")
         )
 
     @property
     def mechanics_ready(self) -> bool:
         kinds = self.artifact_kinds()
-        return "volume_mesh" in kinds and self.qc is not None and self.qc.passed
+        return "volume_mesh" in kinds and self._qc_covers("volume_mesh")
 
     @property
     def flow_ready(self) -> bool:
         kinds = self.artifact_kinds()
-        return "surface_mesh" in kinds and self.qc is not None and self.qc.passed
+        return "surface_mesh" in kinds and self._qc_covers("surface_mesh")
 
     @property
     def ready(self) -> bool:
         """Backward-compatible baseline readiness for geometry consumers."""
         kinds = self.artifact_kinds()
         required = {"segmentation", "surface_mesh", "volume_mesh"}
-        return required <= kinds and self.qc is not None and self.qc.passed
+        return required <= kinds and self._qc_covers("volume_mesh")
 
 
 class MeshInspection(BaseModel):

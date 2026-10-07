@@ -1,0 +1,7 @@
+include README.md LICENSE THIRD_PARTY_NOTICES.md CITATION.cff CHANGELOG.md
+recursive-include schemas *.json
+recursive-include examples *.json *.vtk
+recursive-include scripts *.py
+recursive-include validation *.json *.md *.txt *.gz
+recursive-include docs *.md
+recursive-include tests *.py

@@ -105,6 +105,12 @@ def closed_surface_signed_volume(points: np.ndarray, triangles: np.ndarray) -> f
         triangles = triangles.astype(np.int64)
     if triangles.size and (triangles.min() < 0 or triangles.max() >= len(points)):
         raise ValueError("triangles contain out-of-range point indices")
+    from .qc import inspect_triangle_surface, qc_from_inspection
+
+    qc = qc_from_inspection(inspect_triangle_surface(points, triangles),
+                            require_watertight=True)
+    if not qc.passed:
+        raise ValueError("Surface volume requires a closed, consistently oriented manifold")
     shifted = points - points[0]
     a, b, c = (shifted[triangles[:, index]] for index in range(3))
     with np.errstate(over="ignore", invalid="ignore"):

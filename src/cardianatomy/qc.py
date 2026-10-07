@@ -309,15 +309,21 @@ def inspect_triangle_surface(points: np.ndarray, triangles: np.ndarray) -> MeshI
     tolerance = np.finfo(float).eps * scale * 100.0
     degenerate = areas <= tolerance
     counts: Counter[tuple[int, int]] = Counter()
+    directions: Counter[tuple[int, int]] = Counter()
     for tri in triangles:
         for i, j in ((0, 1), (1, 2), (2, 0)):
-            counts[tuple(sorted((int(tri[i]), int(tri[j]))))] += 1
+            edge = tuple(sorted((int(tri[i]), int(tri[j]))))
+            counts[edge] += 1
+            directions[edge] += 1 if tri[i] < tri[j] else -1
     boundary = sum(1 for count in counts.values() if count == 1)
     nonmanifold = sum(1 for count in counts.values() if count > 2)
     lengths = _edge_lengths(points, triangles)
     quality = triangle_shape_quality(points, triangles)
     metadata = _quality_summary(quality, "triangle_quality")
     metadata.update(_topology_metadata(len(points), triangles))
+    metadata["orientation_conflict_edge_count"] = sum(
+        1 for edge, count in counts.items() if count == 2 and directions[edge] != 0
+    )
     return MeshInspection(
         point_count=len(points),
         cell_count=len(triangles),
@@ -360,6 +366,9 @@ def qc_from_inspection(
         ) == 0.0
     if inspection.triangle_count:
         checks["manifold_edges"] = (inspection.nonmanifold_edge_count or 0) == 0
+        checks["consistent_surface_orientation"] = (
+            inspection.metadata.get("orientation_conflict_edge_count", 0) == 0
+        )
         if require_watertight:
             checks["watertight"] = (inspection.boundary_edge_count or 0) == 0
     if minimum_shape_quality is not None:
@@ -375,8 +384,9 @@ def qc_from_inspection(
             for key in quality_keys
             if key in inspection.metadata
         ]
-        if quality_values:
-            checks["minimum_shape_quality"] = min(quality_values) >= minimum_shape_quality
+        checks["minimum_shape_quality"] = bool(quality_values) and (
+            min(quality_values) >= minimum_shape_quality
+        )
 
     errors = [name for name, passed in checks.items() if not passed]
     metrics = {

@@ -15,7 +15,7 @@ def label_counts(labels: np.ndarray) -> dict[int, int]:
         if not np.all(np.equal(values, np.floor(values))):
             raise ValueError("segmentation labels must be integer-valued")
         limits = np.iinfo(np.int64)
-        if np.any(values < limits.min) or np.any(values > limits.max):
+        if np.any(values < limits.min) or np.any(values >= float(2**63)):
             raise ValueError("segmentation labels exceed int64 range")
         values = values.astype(np.int64)
     unique, counts = np.unique(values, return_counts=True)

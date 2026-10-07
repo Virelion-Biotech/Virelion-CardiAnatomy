@@ -1,24 +1,19 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
-from urllib.parse import unquote, urlparse
 
 from .backends import StageOutput
 from .io import inspect_mesh_file
 from .models import AnatomyBundle, AnatomyRequest, ArtifactRef
 from .provenance import file_sha256
+from .pipeline import _local_artifact_path
 from .qc import qc_from_inspection
 from .report import render_html_report
+from .serialization import write_json_atomic, write_text_atomic
 
 
 def local_artifact_path(artifact: ArtifactRef) -> Path | None:
-    parsed = urlparse(artifact.uri)
-    if parsed.scheme == "file":
-        return Path(unquote(parsed.path))
-    if parsed.scheme:
-        return None
-    return Path(artifact.uri)
+    return _local_artifact_path(artifact.uri)
 
 
 class NativeIngestBackend:
@@ -87,25 +82,23 @@ class NativeQCBackend:
         path = local_artifact_path(selected)
         if path is None or not path.is_file():
             raise ValueError("Native geometry QC requires a local mesh artifact")
+        watertight = parameters.get("require_watertight", False)
+        if not isinstance(watertight, bool):
+            raise ValueError("require_watertight must be a boolean")
         inspection = inspect_mesh_file(path)
         quality = parameters.get("minimum_shape_quality")
         qc = qc_from_inspection(
             inspection,
-            require_watertight=bool(parameters.get("require_watertight", False)),
+            require_watertight=watertight,
             minimum_shape_quality=None if quality is None else float(quality),
         )
+        qc.artifact_id = selected.artifact_id
         report_path = workdir / "geometry-qc.json"
-        report_path.write_text(
-            json.dumps(
-                {
-                    "artifact_id": selected.artifact_id,
-                    "inspection": inspection.model_dump(mode="json"),
-                    "qc": qc.model_dump(mode="json"),
-                },
-                indent=2,
-            ),
-            encoding="utf-8",
-        )
+        write_json_atomic(report_path, {
+            "artifact_id": selected.artifact_id,
+            "inspection": inspection.model_dump(mode="json"),
+            "qc": qc.model_dump(mode="json"),
+        })
         report = ArtifactRef(
             artifact_id=f"{selected.artifact_id}-qc",
             kind="qc_report",
@@ -137,11 +130,8 @@ class NativeExportBackend:
     ) -> StageOutput:
         json_path = workdir / "anatomy-bundle.json"
         html_path = workdir / "anatomy-report.html"
-        json_path.write_text(
-            json.dumps(bundle.model_dump(mode="json"), indent=2),
-            encoding="utf-8",
-        )
-        html_path.write_text(render_html_report(bundle), encoding="utf-8")
+        write_json_atomic(json_path, bundle.model_dump(mode="json"))
+        write_text_atomic(html_path, render_html_report(bundle))
         artifacts = [
             ArtifactRef(
                 artifact_id="anatomy-bundle-json",

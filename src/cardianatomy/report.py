@@ -20,7 +20,7 @@ def render_html_report(bundle: AnatomyBundle) -> str:
         f"<td>{esc(item.kind)}</td>"
         f"<td>{esc(item.producer or '')}</td>"
         f"<td>{esc(item.frame_id or '')}</td>"
-        f"<td>{esc(item.size_bytes or '')}</td>"
+        f"<td>{esc(item.size_bytes if item.size_bytes is not None else '')}</td>"
         f"<td><code>{esc((item.sha256 or '')[:16])}</code></td>"
         f"<td>{esc(item.uri)}</td>"
         "</tr>"
@@ -57,7 +57,7 @@ def render_html_report(bundle: AnatomyBundle) -> str:
         f"<td>{esc(item.target_frame)}</td>"
         f"<td>{esc(item.method)}</td>"
         f"<td>{esc(item.quality_metric_name or '')}</td>"
-        f"<td>{esc(item.quality_metric or '')}</td>"
+        f"<td>{esc(item.quality_metric if item.quality_metric is not None else '')}</td>"
         "</tr>"
         for item in bundle.registrations
     )

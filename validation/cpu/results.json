@@ -1,0 +1,230 @@
+{
+  "analytic_controls": {
+    "closed_surface_volume": 0.16666666666666666,
+    "overlap": {
+      "dice": 0.5,
+      "intersection_voxels": 1,
+      "jaccard": 0.3333333333333333,
+      "prediction_voxels": 2,
+      "reference_voxels": 2,
+      "voxel_count_bias": 0
+    },
+    "self_distance": {
+      "hausdorff": 0.0,
+      "hd95": 0.0,
+      "prediction_point_count": 4,
+      "prediction_to_reference_mean": 0.0,
+      "reference_point_count": 4,
+      "reference_to_prediction_mean": 0.0,
+      "symmetric_mean": 0.0,
+      "symmetric_rms": 0.0
+    },
+    "tetra_volume": 0.16666666666666666
+  },
+  "clinical_validation": false,
+  "datasets": [
+    {
+      "inspection": {
+        "boundary_edge_count": 0,
+        "cell_count": 8794,
+        "connected_components": 1,
+        "degenerate_fraction": 0.0,
+        "finite": true,
+        "max_abs_tetra_volume": null,
+        "max_edge_length": 11.99897520764498,
+        "metadata": {
+          "duplicate_cell_count": 14,
+          "orientation_conflict_edge_count": 0,
+          "triangle_quality_median": 0.7364231447222953,
+          "triangle_quality_min": 0.012559901992226832,
+          "triangle_quality_p05": 0.26900289403800665,
+          "unused_point_count": 0
+        },
+        "min_abs_tetra_volume": null,
+        "min_edge_length": 0.3028662161941774,
+        "minority_orientation_fraction": null,
+        "nonmanifold_edge_count": 15,
+        "path": null,
+        "point_count": 4396,
+        "tetra_count": 0,
+        "triangle_count": 8794
+      },
+      "qc": {
+        "artifact_id": null,
+        "checks": {
+          "consistent_surface_orientation": true,
+          "finite": true,
+          "manifold_edges": false,
+          "no_degenerate_cells": true,
+          "no_duplicate_cells": false,
+          "no_unused_points": true,
+          "nonempty": true,
+          "single_component": true,
+          "supported_geometry": true,
+          "watertight": true
+        },
+        "errors": [
+          "no_duplicate_cells",
+          "manifold_edges"
+        ],
+        "metrics": {
+          "boundary_edge_count": 0,
+          "cell_count": 8794,
+          "connected_components": 1,
+          "degenerate_fraction": 0.0,
+          "duplicate_cell_count": 14,
+          "finite": true,
+          "max_edge_length": 11.99897520764498,
+          "min_edge_length": 0.3028662161941774,
+          "nonmanifold_edge_count": 15,
+          "orientation_conflict_edge_count": 0,
+          "point_count": 4396,
+          "tetra_count": 0,
+          "triangle_count": 8794,
+          "triangle_quality_median": 0.7364231447222953,
+          "triangle_quality_min": 0.012559901992226832,
+          "triangle_quality_p05": 0.26900289403800665,
+          "unused_point_count": 0
+        },
+        "passed": false,
+        "warnings": []
+      },
+      "source": {
+        "bytes": 457511,
+        "fixture": "lv.vtk.gz",
+        "license": "MIT (repository LICENSE; no separate data license found)",
+        "purpose": "geometry ingestion and negative QC regression; not a patient reference standard",
+        "repository_commit": "211710420e3504563fe18ba73980e2663ce68fc6",
+        "sha256": "0ab1b18014abf688f19e417a19277756d4d8020bdca9e93e7b4824b23af3a771",
+        "source_url": "https://raw.githubusercontent.com/ccmim/CardioMesh/211710420e3504563fe18ba73980e2663ce68fc6/data/LV_4396_vertices_with_epi_endo.vtk"
+      }
+    },
+    {
+      "inspection": {
+        "boundary_edge_count": 251,
+        "cell_count": 12055,
+        "connected_components": 2,
+        "degenerate_fraction": 0.0,
+        "finite": true,
+        "max_abs_tetra_volume": null,
+        "max_edge_length": 9.305741595380798,
+        "metadata": {
+          "duplicate_cell_count": 0,
+          "orientation_conflict_edge_count": 0,
+          "reader": "legacy_ascii_polydata_geometry_only",
+          "triangle_quality_median": 0.9338681114900026,
+          "triangle_quality_min": 0.17461403590117647,
+          "triangle_quality_p05": 0.7314681571413292,
+          "unused_point_count": 0
+        },
+        "min_abs_tetra_volume": null,
+        "min_edge_length": 0.6206908489739431,
+        "minority_orientation_fraction": null,
+        "nonmanifold_edge_count": 0,
+        "path": null,
+        "point_count": 6155,
+        "tetra_count": 0,
+        "triangle_count": 12055
+      },
+      "qc": {
+        "artifact_id": null,
+        "checks": {
+          "consistent_surface_orientation": true,
+          "finite": true,
+          "manifold_edges": true,
+          "no_degenerate_cells": true,
+          "no_duplicate_cells": true,
+          "no_unused_points": true,
+          "nonempty": true,
+          "single_component": false,
+          "supported_geometry": true,
+          "watertight": false
+        },
+        "errors": [
+          "single_component",
+          "watertight"
+        ],
+        "metrics": {
+          "boundary_edge_count": 251,
+          "cell_count": 12055,
+          "connected_components": 2,
+          "degenerate_fraction": 0.0,
+          "duplicate_cell_count": 0,
+          "finite": true,
+          "max_edge_length": 9.305741595380798,
+          "min_edge_length": 0.6206908489739431,
+          "nonmanifold_edge_count": 0,
+          "orientation_conflict_edge_count": 0,
+          "point_count": 6155,
+          "reader": "legacy_ascii_polydata_geometry_only",
+          "tetra_count": 0,
+          "triangle_count": 12055,
+          "triangle_quality_median": 0.9338681114900026,
+          "triangle_quality_min": 0.17461403590117647,
+          "triangle_quality_p05": 0.7314681571413292,
+          "unused_point_count": 0
+        },
+        "passed": false,
+        "warnings": []
+      },
+      "source": {
+        "bytes": 403422,
+        "fixture": "biv.vtk.gz",
+        "license": "MIT (repository LICENSE; no separate data license found)",
+        "purpose": "geometry ingestion and negative QC regression; not a patient reference standard",
+        "repository_commit": "211710420e3504563fe18ba73980e2663ce68fc6",
+        "sha256": "086bebcf47cb44b10849fd5e48c7c6101c0c1bfb4aa05eace8f288001bf0a056",
+        "source_url": "https://raw.githubusercontent.com/ccmim/CardioMesh/211710420e3504563fe18ba73980e2663ce68fc6/tests/sample_data/legacy_biventricular_model/output.001.vtk"
+      }
+    }
+  ],
+  "dependencies": {
+    "meshio": "5.3.5",
+    "nibabel": "5.4.2",
+    "numpy": "2.3.5",
+    "pydantic": "2.13.5",
+    "pydicom": "3.0.2"
+  },
+  "harness_sha256": "411000cf14b5809effae67eef2dbb342d879006bf1cde867c989ddcaa473e716",
+  "numpy": "2.3.5",
+  "python": "3.12.14",
+  "source_sha256": {
+    "src/cardianatomy/__init__.py": "e3c453f54ddf1b9d9902b0d006079db5359fa2db05a89f4941788a5db5330cfb",
+    "src/cardianatomy/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+    "src/cardianatomy/adapters.py": "e9533cbcc2845abecd94a791f62d59f8cbe21a685df46065747046c18fc41a86",
+    "src/cardianatomy/api.py": "dbcf02cd777b5d6e9b9bd06695981e13cdbdd9b0dd48791e261d4d21f3e6b9bc",
+    "src/cardianatomy/backends.py": "9d894070ce29ee39f3212556ea9ac78052a269d480c38f5f7f7907d24ce8562f",
+    "src/cardianatomy/cine.py": "0985a65d28d4b2414216b348e971c7eb6a9f5d7c0e4ccb49f325958a448a0a22",
+    "src/cardianatomy/cli.py": "86403500d867c1cc2319fbe1e2503073e7d6a9b520d0756e6c6e78d3f27222f0",
+    "src/cardianatomy/coordinates.py": "0992284db78c546ac9f3cb962c8dd630596a7aae1c1d2760c3e00b136730d0f7",
+    "src/cardianatomy/correspondence.py": "2d9bb920a79122882a6a35917bc1c9b7561c98871404a18dae76507e93c7c77e",
+    "src/cardianatomy/fibers.py": "57546bce6148327e16efa50b7364092e84311a5bcf3cc0c311e57c31545cfe23",
+    "src/cardianatomy/geometry.py": "5abe3532baa868b64fbe885800a1d121f09559fc4b5994ba8aacb92ee1405f2e",
+    "src/cardianatomy/integrations/__init__.py": "1895fa9928daa90d2f767532bdb9f2dd12af7a62cf60fb527e5b0dd0e7d6d1fc",
+    "src/cardianatomy/integrations/catalog.py": "349367d0028f19fb9c0c3af0120b993f265d2cecd5c78e71c7c0d6ff76420d6f",
+    "src/cardianatomy/integrations/commands.py": "a5e80aaa1b1c4b45a94c71393ddac7900ee01d7d297e2eb6ad669e3558520723",
+    "src/cardianatomy/io.py": "25a8b2e1c1291cee61fda61dfc62ba581a9ce4cecd94b24d3caf43ec6b16108b",
+    "src/cardianatomy/labels.py": "3c40928e52745b51be5d92a6df0f5984a31aa125add44a9798807f74cf481971",
+    "src/cardianatomy/manifests.py": "ff3ba353d8a4cceb6a5a19bf48543588f261dd2a528292cc279131b11c26c9f5",
+    "src/cardianatomy/models.py": "18cb2ff2c1d7d007151ee9672e7edc9edaa0bf80336d4931e15e7c99426e720a",
+    "src/cardianatomy/motion.py": "e033fb4b42832c2c9257035fabd9dd03b040460fb48416a1968e591a588b1b0c",
+    "src/cardianatomy/native_backends.py": "a576a34094a99a9218517d1bc92a29fb1c2fd9191aeee7e6b61a15edf26780b6",
+    "src/cardianatomy/pipeline.py": "3d5c7b261f9eaa8008aee504893f1db923af53b2732887252e92929099c033dd",
+    "src/cardianatomy/polydata.py": "291464e531c4178ebf46e4263c2c95b81cc44601f662ba10c7eaa2d919ef0000",
+    "src/cardianatomy/presets.py": "0c09775044617b3263eb65736b299e1c9ec432625ad9fa55f6aee700897341c5",
+    "src/cardianatomy/provenance.py": "37e57d5d0dc2eca94132932abef04ae8306721ea0795ebee0392f5647d03e2e4",
+    "src/cardianatomy/qc.py": "44d27722719548b64692b00d999b50874430e23d5c390a23e59c1ac4f59334b7",
+    "src/cardianatomy/registration.py": "1772936567b5b9f04f776c27918026e3e4d00d2ae4a413430b4d39de6916e9da",
+    "src/cardianatomy/report.py": "cd846d83717ec8b84fca1d07340704e5cb19fa3d3244f6f064a55d6ecf6da69e",
+    "src/cardianatomy/scar.py": "66161e222ab64c51ef60968f9fb56e64a2a8647b6626fa23c014e5f94a0e3197",
+    "src/cardianatomy/segmentation.py": "3473df22cd66413e6b0ba46653e51f4ced6d0688a6773ca1afa3209c72917c8b",
+    "src/cardianatomy/serialization.py": "0eb0ca723a2d141696ba38548ee3dbc59a063e403badea2ebb6465ca2f37b6a4",
+    "src/cardianatomy/series.py": "300ba46102e92c704522885de57eb4f96274d2c42628c981d64cf05df24ea1a0",
+    "src/cardianatomy/service.py": "27da3f9b91a6a779dc1e225bd12da4c6ec918f7a6e9b3955a583503ee5c5e1af",
+    "src/cardianatomy/transforms.py": "8bfed4020bf3d54961993f2bf5d978d350c439593eb8abdeeb1bf2f5302d6181",
+    "src/cardianatomy/validation.py": "d338131c0b56ba598e7723ee218e94fb4841bd5a286634a7d435f53609a64ba2"
+  },
+  "status": "PASS",
+  "validation_type": "computational controls and external negative QC fixtures",
+  "version": "0.5.0"
+}

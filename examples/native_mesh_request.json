@@ -1,0 +1,23 @@
+{
+  "subject_id": "synthetic-demo",
+  "acquisition": {
+    "subject_id": "synthetic-demo",
+    "study_id": "analytic-fixture",
+    "acquisition_id": "tetra-1",
+    "modality": "OTHER",
+    "source": {
+      "artifact_id": "analytic-volume",
+      "kind": "volume_mesh",
+      "uri": "examples/tetra_volume.vtk",
+      "metadata": {"coordinate_units": "arbitrary", "patient_data": false}
+    }
+  },
+  "requested_outputs": ["volume_mesh", "qc_report", "report"],
+  "output_root": "outputs/native-demo",
+  "plan": {
+    "stages": ["ingest", "qc", "export"],
+    "backends": {"ingest": "native", "qc": "native", "export": "native"},
+    "stage_parameters": {"qc": {"minimum_shape_quality": 0.2}},
+    "resume": true
+  }
+}

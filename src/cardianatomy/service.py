@@ -52,6 +52,7 @@ class CardiAnatomyService:
             if backend is None or not backend.available():
                 raise BackendUnavailable(f"Anatomy backend unavailable: {request.backend}")
             bundle = backend.build(request)
+        bundle = AnatomyBundle.model_validate(bundle.model_dump(mode="json"))
         identity_mismatches = []
         if bundle.subject_id != request.subject_id:
             identity_mismatches.append("subject_id")
@@ -70,6 +71,7 @@ class CardiAnatomyService:
 
     @staticmethod
     def require_ready(bundle: AnatomyBundle, target: str = "baseline") -> AnatomyBundle:
+        bundle = AnatomyBundle.model_validate(bundle.model_dump(mode="json"))
         readiness = {
             "baseline": bundle.ready,
             "surface": bundle.surface_ready,

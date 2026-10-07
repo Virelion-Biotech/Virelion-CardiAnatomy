@@ -32,6 +32,7 @@ def nearest_point_distances(
     *,
     block_size: int = 1024,
     max_pair_evaluations: int = 20_000_000,
+    backend: str = "brute_force",
 ) -> np.ndarray:
     """Return Euclidean distance from each source point to its nearest target point."""
     source = _validate_point_set(source_points, "source_points")
@@ -48,6 +49,19 @@ def nearest_point_distances(
         or max_pair_evaluations < 1
     ):
         raise ValueError("max_pair_evaluations must be a positive integer")
+    if backend not in {"brute_force", "scipy_kdtree"}:
+        raise ValueError("Unknown distance backend")
+    if backend == "scipy_kdtree":
+        try:
+            from scipy.spatial import cKDTree
+        except ImportError as exc:
+            raise RuntimeError(
+                "Install virelion-cardianatomy[validation] for KD-tree distances"
+            ) from exc
+        distance, _ = cKDTree(target).query(source, k=1, eps=0, workers=1)
+        if not np.all(np.isfinite(distance)):
+            raise OverflowError("KD-tree distances exceed float64 range")
+        return np.asarray(distance, dtype=float)
     pair_count = len(source) * len(target)
     if pair_count > max_pair_evaluations:
         raise ValueError(
@@ -62,14 +76,9 @@ def nearest_point_distances(
         for target_start in range(0, len(target), block_size):
             target_block = target[target_start : target_start + block_size]
             with np.errstate(over="ignore", invalid="ignore"):
-                difference = (
-                    source_block[:, None, :]
-                    - target_block[None, :, :]
-                )
+                difference = source_block[:, None, :] - target_block[None, :, :]
             if not np.all(np.isfinite(difference)):
-                raise OverflowError(
-                    "point-set coordinate differences exceed float64 range"
-                )
+                raise OverflowError("point-set coordinate differences exceed float64 range")
             distance = np.hypot(
                 np.hypot(difference[:, :, 0], difference[:, :, 1]),
                 difference[:, :, 2],
@@ -85,6 +94,7 @@ def point_set_distance_summary(
     *,
     block_size: int = 1024,
     max_pair_evaluations: int = 20_000_000,
+    backend: str = "brute_force",
 ) -> PointSetDistanceSummary:
     """Compute symmetric nearest-point distances in the input coordinate units."""
     reference = _validate_point_set(reference_points, "reference_points")
@@ -94,12 +104,14 @@ def point_set_distance_summary(
         prediction,
         block_size=block_size,
         max_pair_evaluations=max_pair_evaluations,
+        backend=backend,
     )
     backward = nearest_point_distances(
         prediction,
         reference,
         block_size=block_size,
         max_pair_evaluations=max_pair_evaluations,
+        backend=backend,
     )
     all_distances = np.concatenate([forward, backward])
     distance_scale = float(np.max(all_distances))
@@ -139,9 +151,8 @@ def segmentation_overlap_metrics(
         raise ValueError("reference_labels and prediction_labels must have the same shape")
     if reference.size == 0:
         raise ValueError("segmentation arrays must not be empty")
-    if (
-        not np.issubdtype(reference.dtype, np.number)
-        or not np.issubdtype(prediction.dtype, np.number)
+    if not np.issubdtype(reference.dtype, np.number) or not np.issubdtype(
+        prediction.dtype, np.number
     ):
         raise ValueError("segmentation arrays must be numeric")
     if not np.all(np.isfinite(reference)) or not np.all(np.isfinite(prediction)):
@@ -151,6 +162,9 @@ def segmentation_overlap_metrics(
     if not np.all(prediction == np.floor(prediction)):
         raise ValueError("prediction_labels must be integer-valued")
 
+    for array in (reference, prediction):
+        if np.issubdtype(array.dtype, np.floating) and np.any(array >= float(2**63)):
+            raise ValueError("segmentation labels exceed int64 range")
     limits = np.iinfo(np.int64)
     if (
         np.any(reference < limits.min)

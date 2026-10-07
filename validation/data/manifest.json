@@ -1,0 +1,22 @@
+{
+  "datasets": [
+    {
+      "fixture": "lv.vtk.gz",
+      "sha256": "0ab1b18014abf688f19e417a19277756d4d8020bdca9e93e7b4824b23af3a771",
+      "bytes": 457511,
+      "source_url": "https://raw.githubusercontent.com/ccmim/CardioMesh/211710420e3504563fe18ba73980e2663ce68fc6/data/LV_4396_vertices_with_epi_endo.vtk",
+      "repository_commit": "211710420e3504563fe18ba73980e2663ce68fc6",
+      "license": "MIT (repository LICENSE; no separate data license found)",
+      "purpose": "geometry ingestion and negative QC regression; not a patient reference standard"
+    },
+    {
+      "fixture": "biv.vtk.gz",
+      "sha256": "086bebcf47cb44b10849fd5e48c7c6101c0c1bfb4aa05eace8f288001bf0a056",
+      "bytes": 403422,
+      "source_url": "https://raw.githubusercontent.com/ccmim/CardioMesh/211710420e3504563fe18ba73980e2663ce68fc6/tests/sample_data/legacy_biventricular_model/output.001.vtk",
+      "repository_commit": "211710420e3504563fe18ba73980e2663ce68fc6",
+      "license": "MIT (repository LICENSE; no separate data license found)",
+      "purpose": "geometry ingestion and negative QC regression; not a patient reference standard"
+    }
+  ]
+}

@@ -1,53 +1,64 @@
 name: CI
-
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
   group: cardianatomy-ci-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   base:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        os: [ubuntu-latest]
+        python: ['3.10', '3.11', '3.12', '3.13', '3.14']
+        include:
+          - os: windows-latest
+            python: '3.12'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-      - run: python -m pip install --upgrade pip
-      - run: python -m pip install -e '.[dev]'
-      - run: ruff check src tests scripts
-      - run: pytest -q
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -e '.[dev,validation]'
+      - run: python -m ruff check src tests scripts
+      - run: python -m pytest -q --cov=cardianatomy --cov-fail-under=85 -W error
       - run: python scripts/generate_schemas.py --check
-      - run: cardianatomy doctor > /tmp/cardianatomy-doctor.json
-
+      - run: cardianatomy doctor
+  cpu-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e '.[io,validation]'
+      - run: python scripts/run_cpu_validation.py --output artifacts/cpu-validation.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cpu-validation
+          path: artifacts/cpu-validation.json
   package:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - run: python -m pip install --upgrade pip build
+          python-version: '3.12'
+      - run: python -m pip install build
       - run: python -m build
-      - run: python -m pip install dist/*.whl
-      - run: cardianatomy tools
-      - run: cardianatomy presets
-      - run: cardianatomy cine-phases examples/volume_curve.json
-      - run: cardianatomy compose-affines examples/affine_chain.json
-      - run: cardianatomy compare-correspondence examples/correspondence_payload.json
-      - run: cardianatomy summarize-motion examples/motion_payload.json
-      - run: cardianatomy audit-manifest examples/toolchain_manifest.json
+      - run: python -m venv /tmp/anatomy-wheel
+      - run: /tmp/anatomy-wheel/bin/pip install dist/*.whl
+      - run: /tmp/anatomy-wheel/bin/cardianatomy doctor
+      - run: /tmp/anatomy-wheel/bin/cardianatomy cine-phases examples/volume_curve.json
+      - run: /tmp/anatomy-wheel/bin/cardianatomy compose-affines examples/affine_chain.json
+      - run: /tmp/anatomy-wheel/bin/cardianatomy compare-correspondence examples/correspondence_payload.json
+      - run: /tmp/anatomy-wheel/bin/cardianatomy summarize-motion examples/motion_payload.json
+      - run: /tmp/anatomy-wheel/bin/cardianatomy audit-manifest examples/toolchain_manifest.json
+      - run: /tmp/anatomy-wheel/bin/python -c "from importlib.resources import files; assert files('cardianatomy').joinpath('schemas/anatomy-bundle-2.0.0.schema.json').is_file()"

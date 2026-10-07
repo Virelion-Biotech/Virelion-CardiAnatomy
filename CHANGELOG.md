@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.5.0 — 2026-10-07
+
+- Completed CLI pipeline build and reference metric operations with structured errors.
+- Added source-content/request cache invalidation, strict atomic JSON artifacts,
+  and portable filesystem identifiers.
+- Scoped QC readiness to inspected geometry and revalidated mutable contracts.
+- Rejected unsupported curved elements, missing quality measurements, open/
+  inconsistent surfaces for volume, int64 label overflow, and affine overflow.
+- Added bounded ASCII triangular POLYDATA ingestion and optional exact CPU KD-tree metrics.
+- Packaged schemas and preserved pinned public cardiac meshes as negative QC controls.
+- Added cross-platform end-to-end tests, CPU evidence and clean-wheel verification.
+
 ## 0.4.0 — 2026-10-02
 
 ### Anatomy and motion

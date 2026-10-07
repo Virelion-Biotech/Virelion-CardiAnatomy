@@ -237,7 +237,21 @@ def inspect_mesh_file(path: str | Path) -> MeshInspection:
         import meshio
     except ImportError as exc:
         raise RuntimeError("Install virelion-cardianatomy[io] for mesh-file support") from exc
-    mesh = meshio.read(str(path))
+    with Path(path).open("rb") as handle:
+        header = handle.read(512).decode("ascii", errors="ignore")
+    if "DATASET POLYDATA" in header:
+        from .polydata import read_triangle_polydata
+
+        points, triangles = read_triangle_polydata(path)
+        inspection = inspect_triangle_surface(points, triangles)
+        inspection.metadata["reader"] = "legacy_ascii_polydata_geometry_only"
+        return inspection.model_copy(update={"path": str(path)})
+    try:
+        mesh = meshio.read(str(path))
+    except SystemExit as exc:
+        raise ValueError("Unsupported or malformed mesh file") from exc
+    if any(block.type in {"tetra10", "triangle6"} for block in mesh.cells):
+        raise ValueError("Higher-order mesh QC is unsupported; linearize explicitly upstream")
     points = np.asarray(mesh.points[:, :3], dtype=float)
     tetra_blocks = [block.data for block in mesh.cells if block.type in {"tetra", "tetra10"}]
     triangle_blocks = [

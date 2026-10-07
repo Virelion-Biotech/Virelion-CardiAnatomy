@@ -186,3 +186,60 @@ CardiAnatomy is research infrastructure. A valid schema, clean mesh, successful 
 ## License
 
 Virelion CardiAnatomy is licensed under AGPL-3.0-or-later. Third-party tools, model weights, datasets, and optional runtimes retain their own licenses and terms.
+
+## Verified native workflow (0.5.0)
+
+From the repository root, this CPU-only example requires the `io` extra:
+
+```bash
+python -m pip install -e '.[io]'
+cardianatomy build examples/native_mesh_request.json --output outputs/demo-bundle.json --target mechanics
+cardianatomy validate outputs/demo-bundle.json --target mechanics
+cardianatomy report outputs/demo-bundle.json outputs/demo-report.html
+```
+
+This processes an analytic single tetrahedron, hashes the input, runs geometric
+QC, exports JSON/HTML and writes an authoritative finalized bundle. Repeating
+the build resumes verified outputs. Local file/directory bytes and request
+semantics now participate in cache keys; declared input hash mismatches fail.
+The native export stage's JSON is a snapshot taken before its own stage record;
+use the CLI `--output` bundle for complete final stage history and fingerprint.
+Output artifacts use atomic replacement per file, not a multi-file transaction.
+
+`inspect-mesh` returns exit 1 for failing QC. Invalid input returns exit 2 with a
+JSON error on stderr. `build --target` writes the bundle for inspection and then
+fails if the selected readiness gate fails. Native QC is scoped to the inspected
+mesh: a passing volume check cannot approve an unchecked surface for flow.
+Legacy unscoped QC contracts remain supported and should be used only when the
+producer actually checks the required geometry. `requested_outputs` declares
+intent; `--target` explicitly enforces downstream readiness.
+
+Additional computational and reference metrics are available through:
+
+```bash
+cardianatomy evaluate validation_points points-payload.json
+cardianatomy evaluate validation_segmentation labels-payload.json
+python -m pip install -e '.[validation]'
+python scripts/run_cpu_validation.py --output validation/cpu/results.json
+```
+
+Point payloads use `reference_points` and `prediction_points`; set
+`"distance_backend":"scipy_kdtree"` for exact CPU nearest-neighbor distances on
+large meshes. The default bounded brute-force backend retains its pair limit.
+Segmentation payloads use `reference_labels` and `prediction_labels` on the same
+voxel grid. A reference-dependent metric does not validate that reference.
+
+The wheel includes versioned schemas under `cardianatomy/schemas`. Both checked-in
+and packaged schemas are checked for drift. Legacy ASCII triangular VTK POLYDATA
+now has a bounded geometry-only reader; it does not infer anatomy from attribute
+arrays. Binary POLYDATA, nontriangular polygons and higher-order curved element QC
+remain unsupported and fail explicitly. Surface volume requires closed,
+consistently oriented manifold geometry.
+
+The preserved public cardiac meshes expose duplicate/nonmanifold triangles and
+open boundaries; they intentionally **fail** QC. They test ingestion and rejection,
+not reconstruction accuracy. See [CPU validation audit](validation/cpu/AUDIT.md).
+There is no native patient-image segmentation/reconstruction model, no validated
+LDRB solver replacement, and no established clinical validation in this release.
+External learned reconstruction backends still need their tools, weights and
+intended-use validation.

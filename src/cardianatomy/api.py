@@ -86,10 +86,13 @@ class AnatomyAPI:
         self.service = service or CardiAnatomyService()
 
     def health(self) -> dict[str, Any]:
+        from . import __version__
+
         return {
             "service": "CardiAnatomy",
             "status": "ok",
             "contract_version": "2.0.0",
+            "version": __version__,
             "backends": self.service.backends(),
             "capabilities": list(self.capabilities),
         }
@@ -416,6 +419,7 @@ class AnatomyAPI:
                 "block_size",
                 1024,
             ),
+            backend=payload.get("distance_backend", "brute_force"),
             max_pair_evaluations=_optional_strict_int(
                 payload,
                 "max_pair_evaluations",

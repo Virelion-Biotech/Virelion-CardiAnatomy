@@ -7,7 +7,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 import tempfile
 from time import perf_counter
-from urllib.parse import unquote, urlparse
+from urllib.parse import urlparse
+from urllib.request import url2pathname
 
 from .backends import AnatomyStageBackend, BackendUnavailable
 from .models import (
@@ -20,6 +21,7 @@ from .models import (
     StageRecord,
 )
 from .provenance import file_sha256, sha256
+from .serialization import read_json
 
 
 STAGE_ORDER: tuple[StageName, ...] = (
@@ -76,6 +78,7 @@ def bundle_fingerprint(bundle: AnatomyBundle) -> str:
 
 def _bundle_stage_context(bundle: AnatomyBundle) -> dict:
     return {
+        "local_content": _local_input_content(bundle.artifacts),
         "frames": [item.model_dump(mode="json") for item in bundle.frames],
         "registrations": [
             item.model_dump(mode="json") for item in bundle.registrations
@@ -112,11 +115,40 @@ def _stage_output_fingerprint(
 
 def _local_artifact_path(uri: str) -> Path | None:
     parsed = urlparse(uri)
+    if os.name == "nt" and len(parsed.scheme) == 1 and uri[1:2] == ":":
+        return Path(uri)
     if parsed.scheme == "file":
-        return Path(unquote(parsed.path))
+        if parsed.netloc not in {"", "localhost"}:
+            raise ValueError("Remote file URI authorities are unsupported")
+        return Path(url2pathname(parsed.path))
     if not parsed.scheme:
         return Path(uri)
     return None
+
+
+def _local_input_content(artifacts: list[ArtifactRef]) -> dict:
+    """Observe local bytes before cache lookup, including unhashed source inputs."""
+    result = {}
+    for artifact in artifacts:
+        path = _local_artifact_path(artifact.uri)
+        if path is None:
+            continue
+        if path.is_file():
+            digest = file_sha256(path)
+            if artifact.sha256 and artifact.sha256.lower() != digest:
+                raise ValueError(f"Input artifact hash mismatch: {artifact.artifact_id}")
+            result[artifact.artifact_id] = digest
+        elif path.is_dir():
+            entries = {}
+            for file in path.rglob("*"):
+                if file.is_file():
+                    if len(entries) >= 100_000:
+                        raise ValueError("Input directory exceeds 100000 files")
+                    entries[str(file.relative_to(path))] = file_sha256(file)
+            result[artifact.artifact_id] = sha256(entries)
+        else:
+            result[artifact.artifact_id] = None
+    return result
 
 
 def _restorable_artifacts(
@@ -161,7 +193,7 @@ def _write_sidecar_atomic(path: Path, payload: dict) -> None:
     temporary = Path(handle.name)
     try:
         with handle:
-            json.dump(payload, handle, indent=2)
+            json.dump(payload, handle, indent=2, allow_nan=False)
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, path)
@@ -291,13 +323,17 @@ class PipelineExecutor:
                 backend_name,
                 bundle.artifacts,
                 parameters,
-                context=_bundle_stage_context(bundle),
+                context={**_bundle_stage_context(bundle),
+                         "request": sha256(request.model_dump(mode="json",
+                                           exclude={"plan", "output_root"}))},
             )
             sidecar = workdir / f"stage-{stage}.json"
             if plan.resume and sidecar.is_file():
                 try:
-                    previous = json.loads(sidecar.read_text(encoding="utf-8"))
-                except (OSError, json.JSONDecodeError):
+                    previous = read_json(sidecar)
+                    if not isinstance(previous, dict):
+                        previous = {}
+                except (OSError, ValueError):
                     previous = {}
                 previous_record = previous.get("record")
                 if (

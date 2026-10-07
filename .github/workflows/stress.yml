@@ -3,16 +3,8 @@ name: Stress
 on:
   push:
     branches: [main]
-    paths:
-      - ".github/workflows/stress.yml"
-      - "src/**"
-      - "tests/test_stress_*.py"
   pull_request:
     branches: [main]
-    paths:
-      - ".github/workflows/stress.yml"
-      - "src/**"
-      - "tests/test_stress_*.py"
   workflow_dispatch:
   schedule:
     - cron: "17 3 * * 1"
