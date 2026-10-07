@@ -84,3 +84,5 @@ complete finalized bundle. Fingerprints include artifact paths and stage history
 independent builds on different machines are not guaranteed identical bundle
 fingerprints. No live downstream solver run or independent patient-reference
 accuracy/clinical validation is established by this audit.
+
+Publication: audited source and fixtures committed to main as `4e7099ba44a2808d8c477855c7d0f5741a1e0838`. GitHub CI repeats software, packaged-schema, CPU data and seeded stress checks for the published revision.
