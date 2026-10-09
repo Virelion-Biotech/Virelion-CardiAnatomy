@@ -27,7 +27,10 @@ def three_grid_convergence(mesh_sizes, values, *, maximum_relative_gci=0.05, saf
         return {
             "passed": False,
             "status": "asymptotic_convergence_not_demonstrated",
-            "reason": "Oscillatory, exact/degenerate or non-decreasing differences; zero reference endpoint",
+            "reason": (
+                "Oscillatory, exact/degenerate or non-decreasing differences; "
+                "zero reference endpoint"
+            ),
         }
     order = math.log(abs(d1 / d2)) / math.log(r)
     denominator = r**order - 1
