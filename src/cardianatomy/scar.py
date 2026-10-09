@@ -34,3 +34,31 @@ def scar_fractions(labels: np.ndarray) -> dict[str, float]:
         "border_fraction": float(np.sum(labels == 1) / total),
         "core_fraction": float(np.sum(labels == 2) / total),
     }
+
+
+def scar_threshold_ensemble(values, specs, *, acquisition_sequence, etiology, method):
+    """Empirical class frequencies across declared threshold hypotheses.
+
+    These are threshold-sensitivity frequencies, not calibrated tissue-class
+    probabilities. No LGE threshold is inferred or scientifically qualified here.
+    """
+    specs = tuple(specs)
+    if len(specs) < 2:
+        raise ValueError("Scar sensitivity requires at least two declared threshold hypotheses")
+    if any(
+        not isinstance(x, str) or not x.strip() for x in [acquisition_sequence, etiology, method]
+    ):
+        raise ValueError("Sequence, etiology and threshold method must be explicit")
+    classes = np.stack([classify_scalar_scar(values, spec) for spec in specs])
+    frequencies = np.stack([(classes == i).mean(axis=0) for i in range(3)], axis=-1)
+    return {
+        "class_frequencies": frequencies,
+        "class_order": ["normal", "border_zone", "core"],
+        "n_hypotheses": len(specs),
+        "acquisition_sequence": acquisition_sequence,
+        "etiology": etiology,
+        "method": method,
+        "uncertainty_kind": "threshold_sensitivity",
+        "probability_calibrated": False,
+        "hypotheses": [spec.model_dump(mode="json") for spec in specs],
+    }
