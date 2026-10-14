@@ -14,6 +14,21 @@ CardiAnatomy is the **patient-specific anatomy and spatial-geometry layer** of t
 
 It is designed around the strongest ideas in modern open cardiac-model construction pipelines while keeping **scientific algorithms swappable and licensing explicit**.
 
+
+<!-- VALIDATION_PRODUCT_STATUS:BEGIN -->
+## Validation and product completion status
+
+**Reviewed 2026-10-14; implementation base `0bd310ac9408`.** **Status: Geometry/contract and numerical checks; anatomical reconstruction qualification incomplete.** This is an evidence-backed scope assessment, not a percentage-complete estimate or a declaration that the product is finished.
+
+| Area | Current evidence / remaining gate |
+|---|---|
+| Software / operational checks | Automated test sources and CI definitions are present; this documentation audit does not report a new algorithm/data-validation run. |
+| Scientific or domain evidence | Native mesh workflows, transforms and reference metrics have CPU evidence. Public meshes intentionally expose QC rejection cases. There is no native patient-image reconstruction model or clinical anatomy qualification. |
+| Remaining for the declared product scope | Integrate and qualify explicit imaging/segmentation/reconstruction backends with independent labeled images; validate registration, motion, scar and fibers against appropriate truth; resolve required mesh/element/reader coverage; demonstrate intended-scale simulation-ready exports with provenance. |
+
+Evidence and limits: [repository report](validation/cpu/AUDIT.md). The [organization status index](https://github.com/Virelion-Biotech/Virelion-HeartTwin/blob/main/docs/STACK_VALIDATION_STATUS.md) separates software, numerical, data-readiness and empirical qualification. Code/schema execution or a completed download is not a substitute for endpoint-specific validation.
+<!-- VALIDATION_PRODUCT_STATUS:END -->
+
 ## Why this exists
 
 A digital twin cannot be patient-specific if its geometry is just a filename. CardiAnatomy makes anatomy an auditable computational object:
