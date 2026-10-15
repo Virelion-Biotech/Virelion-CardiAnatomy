@@ -38,6 +38,7 @@ def run_validation():
             qc = qc_from_inspection(inspection, require_watertight=True)
             # The negative controls must remain rejected, not be silently repaired.
             assert not qc.passed
+            assert not qc.checks["watertight"]
             if dataset["fixture"] == "lv.vtk.gz":
                 assert inspection.point_count == 4396
                 assert inspection.metadata["duplicate_cell_count"] == 14
