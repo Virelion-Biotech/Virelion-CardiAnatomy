@@ -365,12 +365,16 @@ def qc_from_inspection(
             inspection.minority_orientation_fraction or 0.0
         ) == 0.0
     if inspection.triangle_count:
-        checks["manifold_edges"] = (inspection.nonmanifold_edge_count or 0) == 0
+        checks["manifold_edges"] = inspection.nonmanifold_edge_count == 0
         checks["consistent_surface_orientation"] = (
             inspection.metadata.get("orientation_conflict_edge_count", 0) == 0
         )
         if require_watertight:
-            checks["watertight"] = (inspection.boundary_edge_count or 0) == 0
+            # Closed edge incidence requires exactly two faces per edge.
+            # Missing topology measurements cannot establish this property.
+            checks["watertight"] = (
+                inspection.boundary_edge_count == 0 and checks["manifold_edges"]
+            )
     if minimum_shape_quality is not None:
         if not 0 <= minimum_shape_quality <= 1:
             raise ValueError("minimum_shape_quality must lie in [0, 1]")

@@ -1,0 +1,18 @@
+{
+  "ATTEMPT_STATUS.json": "5ad267f33631bfd34c488ecd6acbfa9553183cfa0a3fa365caa851f69547f986",
+  "LAST_SESSION.json": "c9e40c57830330b70dde502613d1b60be229fbb446949a01a064ee90f4a99a76",
+  "RETAINED_ON_DRIVE.json": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+  "RUN_STATUS.json": "53ff4da981e3f2cb925b448ad715a516b176b1d260e8ef418ce030e58fbea6b9",
+  "environment-setup.log": "a3e9c81d74c2b7270790d1d13051195893d6e4b4f01140f72fc9eab77b8b4ed9",
+  "environment.txt": "3fadf5c76c0cd1fd112f0bbc12d1c8fdc805db3881f7f4f707ab42072410945a",
+  "launcher/runtime.py": "42099bbb908333a480c11eca9f0586759d57162a1c11b977067a9696c45d0985",
+  "launcher/training.py": "c63aee5893f194932f786c5054bd5ff5938bde40a69328d43fd39fb8b0faf112",
+  "launcher/worker.py": "76a8b3ddbe6411bea07d353948f7bed3a708ddd3dd46624e6569c377b3eb88b3",
+  "logs/Virelion-CardiAnatomy-run_cpu_validation.txt": "8709ced6b6488f8b8bc89260124b164ffab11e7142ce5bf9e99db46cf7992bad",
+  "protocol.json": "bcb3060a4294bf02647ea1044375926254ceee8562f9ad1a216ee897c9433764",
+  "results/Virelion-CardiAnatomy-run_cpu_validation-execution.json": "d7a9b8ca2490e98c24362e1d065d5eff872291677e335d15eb77f194e0013b30",
+  "results/Virelion-CardiAnatomy-run_cpu_validation.json": "f192f62cf855882e50503bb02b69f6d51fba493b109eea867c18e22e74737709",
+  "source_snapshots.json": "9acf8fc4547e50d21a018db3f77fdf8ba8cd87086c3e353b87a456afe4da7707",
+  "state/Virelion-CardiAnatomy-run_cpu_validation.json": "378930b7ac833b2b0af1fb18c7b5b504ee6cf8288b304e08415c03180f2bfdae",
+  "worker-session.log": "0efd8be41a370bd9ac2911a83630d8a7789e7819f3474614a4d104e66cb17e57"
+}

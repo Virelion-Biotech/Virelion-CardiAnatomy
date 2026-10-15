@@ -1,0 +1,25 @@
+{
+  "archive_sha256": "f2c0f6cc81828c08d553f3dd014a4eef2a617100a7bdb88a64b030edd84ac2a8",
+  "archive_members": 17,
+  "artifact_hashes_verified": 16,
+  "canonical_protocol_and_launcher_hashes_verified": true,
+  "pinned_source_files_verified": 110,
+  "original_module_hashes_verified": 35,
+  "original_harness_reproduced": true,
+  "fixture_bytes_changed": false,
+  "corrected_result_changes": [
+    "LV watertight flag true -> false",
+    "LV QC errors additionally include watertight"
+  ],
+  "baseline_and_corrected_analytic_controls_identical": true,
+  "regression_cases_failed_before_fix": 4,
+  "local_tests_passed": 268,
+  "statement_coverage_percent": 86.73,
+  "clinical_validation": false,
+  "unresolved": [
+    "Independent patient segmentation/reconstruction truth",
+    "Scar and fiber reference truth",
+    "Real-world registration accuracy",
+    "Intended-scale downstream solver validation"
+  ]
+}

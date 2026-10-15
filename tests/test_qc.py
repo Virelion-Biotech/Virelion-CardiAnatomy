@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from cardianatomy import (
     inspect_tetra_mesh,
@@ -33,6 +34,51 @@ def test_open_surface_can_be_allowed_or_required_watertight() -> None:
     inspection = inspect_triangle_surface(points, triangles)
     assert qc_from_inspection(inspection).passed
     assert not qc_from_inspection(inspection, require_watertight=True).passed
+
+
+def test_nonmanifold_surface_without_boundary_edges_is_not_watertight() -> None:
+    # Two closed tetrahedral shells share an edge: four incident faces there.
+    points = np.array(
+        [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [0, -1, 0], [0, 0, -1]],
+        dtype=float,
+    )
+    triangles = np.array(
+        [[0, 2, 1], [0, 1, 3], [0, 3, 2], [1, 2, 3],
+         [0, 4, 1], [0, 1, 5], [0, 5, 4], [1, 4, 5]],
+    )
+    inspection = inspect_triangle_surface(points, triangles)
+    assert inspection.boundary_edge_count == 0
+    assert inspection.nonmanifold_edge_count == 1
+    assert inspection.metadata["duplicate_cell_count"] == 0
+    qc = qc_from_inspection(inspection, require_watertight=True)
+    assert not qc.checks["watertight"]
+    assert "watertight" in qc.errors
+    assert not qc.passed
+
+
+@pytest.mark.parametrize("boundary,nonmanifold", [(None, 0), (0, None), (None, None)])
+def test_unknown_topology_cannot_establish_watertightness(boundary, nonmanifold) -> None:
+    from cardianatomy import MeshInspection
+
+    inspection = MeshInspection(
+        point_count=4,
+        cell_count=4,
+        triangle_count=4,
+        connected_components=1,
+        boundary_edge_count=boundary,
+        nonmanifold_edge_count=nonmanifold,
+    )
+    qc = qc_from_inspection(inspection, require_watertight=True)
+    assert not qc.checks["watertight"]
+    assert not qc.passed
+
+
+def test_closed_manifold_surface_retains_watertight_pass() -> None:
+    points = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=float)
+    triangles = np.array([[0, 2, 1], [0, 1, 3], [0, 3, 2], [1, 2, 3]])
+    qc = qc_from_inspection(inspect_triangle_surface(points, triangles), require_watertight=True)
+    assert qc.checks["watertight"]
+    assert qc.passed
 
 
 def test_regular_tetra_has_high_shape_quality() -> None:

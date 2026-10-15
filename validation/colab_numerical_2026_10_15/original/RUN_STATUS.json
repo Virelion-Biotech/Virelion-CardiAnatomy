@@ -1,0 +1,12 @@
+{
+  "error": null,
+  "input_receipts": {},
+  "protocol_sha256": "a89181976b8343e7c14461f1d875f0b40a2f36562eef47936a39c4cada3cafdf",
+  "scientific_validation": "NOT_ESTABLISHED_BY_EXECUTION",
+  "scope": "External CardioMesh negative-QC fixtures plus analytic geometry/registration controls.",
+  "seconds_this_session": 1.329681929000003,
+  "source_pins": {
+    "Virelion-CardiAnatomy": "0bd310ac9408ba208d5248804ba07a053c988e21"
+  },
+  "status": "NUMERICAL_ONLY"
+}

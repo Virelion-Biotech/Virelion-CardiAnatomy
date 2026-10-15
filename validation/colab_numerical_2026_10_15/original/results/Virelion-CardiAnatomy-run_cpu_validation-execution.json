@@ -1,0 +1,10 @@
+{
+  "command": [
+    "/content/12_CardiAnatomy_Numerical_v1/venv/bin/python",
+    "/content/12_CardiAnatomy_Numerical_v1/Virelion-CardiAnatomy/scripts/run_cpu_validation.py",
+    "--output",
+    "/content/drive/MyDrive/HeartTwinValidation/12_CardiAnatomy_Numerical_v1/results/Virelion-CardiAnatomy-run_cpu_validation.json"
+  ],
+  "returncode": 0,
+  "seconds": 1.2599699260000534
+}

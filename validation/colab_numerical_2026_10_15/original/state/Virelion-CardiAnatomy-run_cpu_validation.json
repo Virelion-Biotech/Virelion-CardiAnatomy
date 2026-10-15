@@ -1,0 +1,12 @@
+{
+  "artifacts": {
+    "logs/Virelion-CardiAnatomy-run_cpu_validation.txt": "8709ced6b6488f8b8bc89260124b164ffab11e7142ce5bf9e99db46cf7992bad",
+    "results/Virelion-CardiAnatomy-run_cpu_validation-execution.json": "d7a9b8ca2490e98c24362e1d065d5eff872291677e335d15eb77f194e0013b30",
+    "results/Virelion-CardiAnatomy-run_cpu_validation.json": "f192f62cf855882e50503bb02b69f6d51fba493b109eea867c18e22e74737709"
+  },
+  "identity": "a89181976b8343e7c14461f1d875f0b40a2f36562eef47936a39c4cada3cafdf",
+  "result": {
+    "log": "logs/Virelion-CardiAnatomy-run_cpu_validation.txt",
+    "returncode": 0
+  }
+}
