@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .backends import AnatomyBackend, AnatomyStageBackend, BackendUnavailable
 from .models import AnatomyBundle, AnatomyRequest, MeshInspection
+from .patient_readiness import patient_ep_readiness_issues
 from .pipeline import PipelineExecutor, bundle_fingerprint
 
 
@@ -72,6 +73,15 @@ class CardiAnatomyService:
     @staticmethod
     def require_ready(bundle: AnatomyBundle, target: str = "baseline") -> AnatomyBundle:
         bundle = AnatomyBundle.model_validate(bundle.model_dump(mode="json"))
+        if target == "patient_ep":
+            issues = patient_ep_readiness_issues(bundle)
+            if issues:
+                raise ReadinessError(
+                    "Anatomy bundle is not ready for target=patient_ep: "
+                    + "; ".join(issues)
+                )
+            return bundle
+
         readiness = {
             "baseline": bundle.ready,
             "surface": bundle.surface_ready,
