@@ -1,0 +1,25 @@
+name: BodyParts3D metadata transfer
+on:
+  push:
+    branches: [space-cardio-bodyparts3d-transfer-20261023]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fetch-metadata:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch official metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://dbarchive.biosciencedbc.jp/data/bodyparts3d/LATEST'
+          curl --fail --location --retry 5 "$base/partof_parts_list_e.txt" -o partof_parts_list_e.txt
+          curl --fail --location --retry 5 "$base/partof_element_parts.txt" -o partof_element_parts.txt
+          curl --fail --location --retry 5 "$base/partof_inclusion_relation_list.txt" -o partof_inclusion_relation_list.txt
+          wc -l partof_*.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bodyparts3d-official-metadata
+          path: partof_*.txt
+          retention-days: 1
