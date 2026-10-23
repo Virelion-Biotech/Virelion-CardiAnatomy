@@ -1,0 +1,43 @@
+name: BodyParts3D transfer
+
+on:
+  push:
+    branches:
+      - space-cardio-bodyparts3d-transfer-20261023
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fetch-atlas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Download official BodyParts3D 4.0 PART-OF archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL='https://dbarchive.biosciencedbc.jp/data/bodyparts3d/LATEST/partof_BP3D_4.0_obj_99.zip'
+          curl --fail --location --retry 5 --retry-delay 5 --connect-timeout 30 --max-time 900 "$URL" -o partof_BP3D_4.0_obj_99.zip
+          python - <<'PY'
+          import hashlib, json, zipfile
+          p='partof_BP3D_4.0_obj_99.zip'
+          h=hashlib.sha256(open(p,'rb').read()).hexdigest()
+          assert zipfile.is_zipfile(p), 'download is not a ZIP'
+          with zipfile.ZipFile(p) as z:
+              objs=[n for n in z.namelist() if n.lower().endswith('.obj')]
+          assert len(objs)==1258, f'expected 1258 OBJ entries, got {len(objs)}'
+          meta={'file':p,'sha256':h,'obj_entries':len(objs),'doi':'10.18908/lsdba.nbdc00837-008'}
+          open('bodyparts3d_transfer_meta.json','w').write(json.dumps(meta,indent=2))
+          print(json.dumps(meta,indent=2))
+          PY
+      - name: Upload official archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: bodyparts3d-official-4p0
+          path: |
+            partof_BP3D_4.0_obj_99.zip
+            bodyparts3d_transfer_meta.json
+          retention-days: 1
+          compression-level: 0
