@@ -180,7 +180,13 @@ def _prepare_view_images(
     return records
 
 
-def _inspect_volume_meshes(data_root: Path) -> list[dict[str, Any]]:
+def _inspect_volume_meshes(
+    data_root: Path,
+    *,
+    minimum_points: int,
+    minimum_tetrahedra: int,
+    minimum_shape_quality: float,
+) -> list[dict[str, Any]]:
     candidates: list[dict[str, Any]] = []
     for path in sorted(data_root.rglob("*")):
         if path.is_symlink() or not path.is_file() or path.suffix.lower() not in _MESH_SUFFIXES:
@@ -193,7 +199,24 @@ def _inspect_volume_meshes(data_root: Path) -> list[dict[str, Any]]:
             continue
         if not inspection.tetra_count:
             continue
-        qc = qc_from_inspection(inspection)
+        qc = qc_from_inspection(
+            inspection,
+            minimum_shape_quality=minimum_shape_quality,
+        )
+        checks = dict(qc.checks)
+        checks["minimum_point_count"] = inspection.point_count >= minimum_points
+        checks["minimum_tetra_count"] = inspection.tetra_count >= minimum_tetrahedra
+        errors = list(qc.errors)
+        for check_name in ("minimum_point_count", "minimum_tetra_count"):
+            if not checks[check_name]:
+                errors.append(check_name)
+        qc = qc.model_copy(
+            update={
+                "passed": not errors,
+                "checks": checks,
+                "errors": errors,
+            }
+        )
         candidates.append({
             "path": path.relative_to(data_root).as_posix(),
             "sha256": _sha256(path),
@@ -235,6 +258,9 @@ def run_biv_volumetric_pipeline(
     gpu: bool = False,
     python_executable: str = "python",
     timeout_seconds: float = 14_400,
+    minimum_points: int = 500,
+    minimum_tetrahedra: int = 1000,
+    minimum_shape_quality: float = 0.05,
 ) -> dict[str, Any]:
     """Run selected sequential stages with immutable inputs and an audit manifest.
 
@@ -251,6 +277,23 @@ def run_biv_volumetric_pipeline(
         raise ValueError("timeframe must be a non-negative integer")
     if not np.isfinite(timeout_seconds) or timeout_seconds <= 0:
         raise ValueError("timeout_seconds must be finite and strictly positive")
+    if (
+        isinstance(minimum_points, bool)
+        or not isinstance(minimum_points, int)
+        or minimum_points < 1
+    ):
+        raise ValueError("minimum_points must be a positive integer")
+    if (
+        isinstance(minimum_tetrahedra, bool)
+        or not isinstance(minimum_tetrahedra, int)
+        or minimum_tetrahedra < 1
+    ):
+        raise ValueError("minimum_tetrahedra must be a positive integer")
+    if (
+        not np.isfinite(minimum_shape_quality)
+        or not 0.0 <= minimum_shape_quality <= 1.0
+    ):
+        raise ValueError("minimum_shape_quality must be finite and lie in [0, 1]")
     selected = tuple(stages)
     if not selected or selected != _STAGES[:len(selected)] or len(selected) > len(_STAGES):
         raise ValueError("Stages must be a non-empty prefix in order: " + ", ".join(_STAGES))
@@ -325,6 +368,15 @@ def run_biv_volumetric_pipeline(
                 "limitations": preflight["limitations"],
             },
             "selected_stages": list(selected),
+            "mesh_acceptance_policy": {
+                "minimum_points": minimum_points,
+                "minimum_tetrahedra": minimum_tetrahedra,
+                "minimum_shape_quality": minimum_shape_quality,
+                "note": (
+                    "Minimal artifact/element-shape screening, not a validated "
+                    "anatomical mesh acceptance standard."
+                ),
+            },
             "stages": [],
             "checks": {
                 "input_nifti_validated": True,
@@ -399,16 +451,21 @@ def run_biv_volumetric_pipeline(
                     "new_or_modified_artifacts": outputs,
                 })
                 if stage == "volumetric":
-                    candidates = _inspect_volume_meshes(data_root)
+                    candidates = _inspect_volume_meshes(
+                        data_root,
+                        minimum_points=minimum_points,
+                        minimum_tetrahedra=minimum_tetrahedra,
+                        minimum_shape_quality=minimum_shape_quality,
+                    )
                     manifest["volume_mesh_candidates"] = candidates
                     passed = [candidate for candidate in candidates if candidate["qc"]["passed"]]
                     if not passed:
                         raise RuntimeError(
                             "Upstream volumetric command returned success, but no tetrahedral "
-                            "mesh passed CardiAnatomy's geometry QC. Outputs were preserved; "
-                            "inspect volume_mesh_candidates and the stage log."
+                            "mesh passed the configured size and geometry-QC screening. "
+                            "Outputs were preserved; inspect volume_mesh_candidates and the stage log."
                         )
-                    manifest["verified_volume_mesh"] = passed[0]
+                    manifest["geometry_qc_passed_volume_mesh"] = passed[0]
                     manifest["checks"]["volume_mesh_qc_passed"] = True
                 if stage == "uvc-fiber":
                     names = [item["path"].lower() for item in outputs]
