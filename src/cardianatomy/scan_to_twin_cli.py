@@ -11,7 +11,11 @@ def main(argv=None):
     parser.add_argument("--output-root", required=True)
     parser.add_argument("--python-executable", default="python")
     parser.add_argument("--case-id", default=None)
-    parser.add_argument("--review-mode", choices=["manual", "adaptive", "automatic"], default="adaptive")
+    parser.add_argument(
+        "--review-mode",
+        choices=["manual", "adaptive", "automatic"],
+        default="adaptive",
+    )
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--timeout-seconds", type=int, default=43200)
     parser.add_argument("--analysis-timeout-seconds", type=int, default=1800)
