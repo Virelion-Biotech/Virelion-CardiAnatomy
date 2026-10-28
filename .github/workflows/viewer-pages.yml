@@ -1,0 +1,36 @@
+name: CardiAnatomy 3D Viewer Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "viewer/**"
+      - ".github/workflows/viewer-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: cardi-anatomy-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload viewer
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: viewer
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
