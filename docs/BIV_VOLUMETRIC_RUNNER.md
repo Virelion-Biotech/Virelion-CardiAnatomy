@@ -13,7 +13,9 @@ The runner requires four already prepared NIfTI views and copies/re-serializes t
 
 The output root must be new or empty. Existing non-empty output is rejected; partial results are preserved after a failure rather than silently erased. The original four source files are not modified.
 
-If the volume stage is selected, the adapter searches produced mesh files for tetrahedral geometry and runs CardiAnatomy's geometry QC. It fails closed when no tetrahedral mesh passes the QC checks. This is not a proof that the segmentation labels, spatial registration, valve/base anatomy, tissue boundaries, or mesh-to-image alignment are correct.
+If the volume stage is selected, the adapter searches produced mesh files for tetrahedral geometry and runs CardiAnatomy's geometry QC. By default, a candidate must contain at least **500 points**, **1,000 tetrahedra**, and meet a normalized shape-metric threshold of **0.05**. These configurable defaults (**--minimum-points**, **--minimum-tetrahedra**, and **--minimum-shape-quality**) are basic artifact/element-shape guards; they are not a validated acceptance standard for every anatomy or solver.
+
+The runner fails closed when no tetrahedral candidate passes these checks. This is not a proof that the segmentation labels, spatial registration, valve/base anatomy, tissue boundaries, boundary surfaces, or mesh-to-image alignment are correct.
 
 ## Install
 
@@ -78,7 +80,7 @@ Add uvc-fiber after volumetric in --stages to request the upstream UVC/fiber sta
 
 The manifest status completed_surface_pipeline_only means the selected upstream commands returned successfully and generated files were recorded. It does not establish a volume mesh.
 
-The status completed_volume_mesh_qc_passed means a produced tetrahedral mesh passed CardiAnatomy's implemented geometric checks. If UVC/fiber is also selected, the resulting status explicitly leaves UVC/fiber quality unverified. Review outputs against source image overlays, confirm label semantics and coordinate frames, inspect boundary conditions, and independently validate the mesh before solver use.
+The status completed_volume_mesh_qc_passed means a produced tetrahedral mesh passed the recorded minimum-size and geometry-QC screening checks. The selected artifact is stored under **geometry_qc_passed_volume_mesh** in the manifest. If UVC/fiber is also selected, the resulting status explicitly leaves UVC/fiber quality unverified. Review outputs against source image overlays, confirm label semantics and coordinate frames, inspect boundary conditions, and independently validate the mesh before solver use.
 
 Failures preserve artifacts and mark the failing stage in run-manifest.json. The run workspace and logs may expose case metadata and should be handled as private clinical data.
 
