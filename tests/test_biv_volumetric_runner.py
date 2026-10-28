@@ -296,9 +296,9 @@ def test_cli_runs_adapter_and_prints_manifest(tmp_path, monkeypatch, capsys):
     assert output["status"] == "completed_surface_pipeline_only"
     assert captured["views"]["SAX"] == "SAX.nii.gz"
     assert captured["kwargs"]["subject_id"] == "case_001"
-    assert captured["kwargs"]["stages"] == (
+    assert captured["kwargs"]["stages"] == [
         "segmentation", "contour", "surface"
-    )
+    ]
 
 
 def test_cli_reports_runner_errors_as_json(tmp_path, monkeypatch, capsys):
