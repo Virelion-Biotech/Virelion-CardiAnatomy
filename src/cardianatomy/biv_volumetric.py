@@ -193,9 +193,13 @@ def _inspect_volume_meshes(
             continue
         try:
             inspection = inspect_mesh_file(path)
+        except RuntimeError as exc:
+            if "Install virelion-cardianatomy[io]" in str(exc):
+                raise
+            # Unsupported mesh types should not hide other candidate outputs.
+            continue
         except Exception:
-            # Some supported mesh extensions can still contain unsupported or
-            # malformed datasets; one bad candidate must not hide other outputs.
+            # One malformed candidate should not hide other output files.
             continue
         if not inspection.tetra_count:
             continue
@@ -290,10 +294,12 @@ def run_biv_volumetric_pipeline(
     ):
         raise ValueError("minimum_tetrahedra must be a positive integer")
     if (
-        not np.isfinite(minimum_shape_quality)
+        isinstance(minimum_shape_quality, bool)
+        or not isinstance(minimum_shape_quality, (int, float))
+        or not np.isfinite(minimum_shape_quality)
         or not 0.0 <= minimum_shape_quality <= 1.0
     ):
-        raise ValueError("minimum_shape_quality must be finite and lie in [0, 1]")
+        raise ValueError("minimum_shape_quality must be numeric, finite, and lie in [0, 1]")
     selected = tuple(stages)
     if not selected or selected != _STAGES[:len(selected)] or len(selected) > len(_STAGES):
         raise ValueError("Stages must be a non-empty prefix in order: " + ", ".join(_STAGES))
@@ -338,9 +344,28 @@ def run_biv_volumetric_pipeline(
     manifest_path = root / "run-manifest.json"
     log_root = root / "logs"
     log_root.mkdir(parents=True, exist_ok=True)
+    preflight_path = root / "preflight-manifest.json"
+    _write_json_atomic(preflight_path, preflight)
 
     try:
         staged_inputs = _prepare_view_images(views, case_dir, preflight)
+    except Exception as exc:
+        failure_manifest = {
+            "schema_version": "cardianatomy.biv-volumetric-run/1.0",
+            "created_utc": _utc_now(),
+            "updated_utc": _utc_now(),
+            "status": "failed",
+            "failed_stage": "input_staging",
+            "error": str(exc)[-4000:],
+            "preflight_manifest": preflight_path.name,
+            "selected_stages": list(selected),
+        }
+        _write_json_atomic(manifest_path, failure_manifest)
+        raise RuntimeError(
+            f"Input staging failed; preflight evidence and partial files were preserved at {root}"
+        ) from exc
+
+    try:
         manifest: dict[str, Any] = {
             "schema_version": "cardianatomy.biv-volumetric-run/1.0",
             "created_utc": _utc_now(),
@@ -391,6 +416,10 @@ def run_biv_volumetric_pipeline(
                 "Input axis-code agreement does not establish spatial registration.",
                 "Review contour/surface overlays against source images before using the geometry.",
                 (
+                    "Upstream segmentation modifies the supplied nnU-Net workspace and may "
+                    "leave temporary datasets if interrupted; use a private, isolated workspace."
+                ),
+                (
                     "A passing mesh QC report is geometric evidence, not anatomical " 
                     "or clinical validation."
                 ),
@@ -400,7 +429,6 @@ def run_biv_volumetric_pipeline(
                 ),
             ],
         }
-        _write_json_atomic(root / "preflight-manifest.json", preflight)
         _write_json_atomic(manifest_path, manifest)
 
         for stage in selected:
