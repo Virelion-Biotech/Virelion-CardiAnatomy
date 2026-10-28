@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from cardianatomy.biv_volumetric import run_biv_volumetric_pipeline
+from cardianatomy.biv_volumetric_cli import main as biv_volumetric_cli_main
 from cardianatomy.integrations.commands import CommandResult, biv_volumetric_command
 
 
@@ -261,3 +262,63 @@ def test_command_builder_rejects_restricted_runtime_without_explicit_permission(
         gpu=True,
     )
     assert "--gpu" in command
+
+
+def test_cli_runs_adapter_and_prints_manifest(tmp_path, monkeypatch, capsys):
+    captured = {}
+
+    def fake_runner(views, **kwargs):
+        captured["views"] = views
+        captured["kwargs"] = kwargs
+        return {
+            "status": "completed_surface_pipeline_only",
+            "selected_stages": ["segmentation", "contour", "surface"],
+        }
+
+    monkeypatch.setattr(
+        "cardianatomy.biv_volumetric_cli.run_biv_volumetric_pipeline",
+        fake_runner,
+    )
+    result = biv_volumetric_cli_main(
+        [
+            "--sax", "SAX.nii.gz",
+            "--lax-2ch", "LAX_2Ch.nii.gz",
+            "--lax-3ch", "LAX_3Ch.nii.gz",
+            "--lax-4ch", "LAX_4Ch.nii.gz",
+            "--upstream-root", str(tmp_path / "upstream"),
+            "--output-root", str(tmp_path / "output"),
+            "--nnunet-workspace", str(tmp_path / "workspace"),
+            "--subject-id", "case_001",
+        ]
+    )
+    output = json.loads(capsys.readouterr().out)
+    assert result == 0
+    assert output["status"] == "completed_surface_pipeline_only"
+    assert captured["views"]["SAX"] == "SAX.nii.gz"
+    assert captured["kwargs"]["subject_id"] == "case_001"
+    assert captured["kwargs"]["stages"] == (
+        "segmentation", "contour", "surface"
+    )
+
+
+def test_cli_reports_runner_errors_as_json(tmp_path, monkeypatch, capsys):
+    def fake_runner(*args, **kwargs):
+        raise ValueError("synthetic input error")
+
+    monkeypatch.setattr(
+        "cardianatomy.biv_volumetric_cli.run_biv_volumetric_pipeline",
+        fake_runner,
+    )
+    result = biv_volumetric_cli_main(
+        [
+            "--sax", "SAX.nii.gz",
+            "--lax-2ch", "LAX_2Ch.nii.gz",
+            "--lax-3ch", "LAX_3Ch.nii.gz",
+            "--lax-4ch", "LAX_4Ch.nii.gz",
+            "--upstream-root", str(tmp_path / "upstream"),
+            "--output-root", str(tmp_path / "output"),
+        ]
+    )
+    captured = capsys.readouterr()
+    assert result == 2
+    assert json.loads(captured.err) == {"error": "synthetic input error"}
