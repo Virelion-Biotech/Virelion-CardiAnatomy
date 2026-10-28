@@ -46,7 +46,9 @@ def _run(argv=None) -> int:
             "installed openCARP runtime with independent licensing terms."
         ),
     )
-    parser.add_argument("--gpu", action="store_true", help="Use the upstream GPU segmentation path.")
+    parser.add_argument(
+        "--gpu", action="store_true", help="Use the upstream GPU segmentation path."
+    )
     parser.add_argument("--python-executable", default="python")
     parser.add_argument("--timeout-seconds", type=float, default=14_400)
     args = parser.parse_args(argv)
