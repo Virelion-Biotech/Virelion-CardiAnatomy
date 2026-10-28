@@ -418,3 +418,57 @@ def test_cli_reports_runner_errors_as_json(tmp_path, monkeypatch, capsys):
     captured = capsys.readouterr()
     assert result == 2
     assert json.loads(captured.err) == {"error": "synthetic input error"}
+
+
+@pytest.mark.parametrize(
+    ("thresholds", "error_message"),
+    [
+        ({"minimum_points": 0}, "minimum_points"),
+        ({"minimum_tetrahedra": True}, "minimum_tetrahedra"),
+        ({"minimum_shape_quality": 1.1}, "minimum_shape_quality"),
+    ],
+)
+def test_mesh_acceptance_thresholds_are_validated(tmp_path, thresholds, error_message):
+    inputs = make_inputs(tmp_path / "inputs")
+    upstream = make_upstream(tmp_path)
+    output = tmp_path / "output"
+
+    with pytest.raises(ValueError, match=error_message):
+        run_biv_volumetric_pipeline(
+            inputs,
+            upstream_root=upstream,
+            output_root=output,
+            **thresholds,
+        )
+    assert not output.exists()
+
+
+def test_input_staging_failure_preserves_preflight_and_failure_manifest(
+    tmp_path, monkeypatch
+):
+    inputs = make_inputs(tmp_path / "inputs")
+    upstream = make_upstream(tmp_path)
+    workspace = tmp_path / "nnunet"
+    workspace.mkdir()
+    output = tmp_path / "output"
+
+    def fail_staging(*args, **kwargs):
+        raise ValueError("synthetic staging failure")
+
+    monkeypatch.setattr(
+        "cardianatomy.biv_volumetric._prepare_view_images",
+        fail_staging,
+    )
+    with pytest.raises(RuntimeError, match="preflight evidence"):
+        run_biv_volumetric_pipeline(
+            inputs,
+            upstream_root=upstream,
+            output_root=output,
+            workspace_dir=workspace,
+        )
+
+    manifest = json.loads((output / "run-manifest.json").read_text())
+    assert manifest["status"] == "failed"
+    assert manifest["failed_stage"] == "input_staging"
+    assert "synthetic staging failure" in manifest["error"]
+    assert (output / "preflight-manifest.json").is_file()
