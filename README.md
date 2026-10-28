@@ -216,6 +216,20 @@ CardiAnatomy now includes a browser-based mesh viewer with camera rotation, zoom
 
 The surface export preserves coordinates but drops labels, scalar fields, fiber/scar arrays and cell attributes. It does not establish anatomy or clinical validity. See [viewer format limitations](viewer/README.md).
 
+## From cine-CMR scan to patient-specific biventricular model
+
+CardiAnatomy can orchestrate the separately installed, Apache-2.0 UOA-Heart-Mechanics-Research/biv-me pipeline from one cine-CMR DICOM directory. It can produce fitted LV/RV/epicardial moving surface meshes and review HTML, then optionally run upstream volume, strain and wall-thickness utilities. This is a concrete scan-to-biventricular-model stage—not yet a complete, calibrated, whole-heart multiphysics twin.
+
+See [docs/SCAN_TO_TWIN.md](docs/SCAN_TO_TWIN.md) for prerequisites and limitations, and [docs/FULL_TWIN_ASSEMBLY_PLAN.md](docs/FULL_TWIN_ASSEMBLY_PLAN.md) for the staged plan to progress from these surfaces to a simulation-ready, calibrated HeartTwin. In brief, install the I/O dependencies and run:
+
+    python -m pip install -e '.[io]'
+    cardianatomy-scan-to-twin /secure/deidentified/cine-case \
+      --biv-me-root /opt/biv-me \
+      --python-executable /opt/conda/envs/bivme311/bin/python \
+      --output-root /secure/output/case-twin
+
+The upstream checkout and learned weights must be installed separately; the launcher does not silently download models. It checks that LV endocardial, RV endocardial and epicardial surface classes all exist (not only the process exit status), writes a hash-pinned manifest, uses a pseudonymous case directory by default, and requires a new/empty output folder. Review contour/image overlays before interpreting measurements. Intermediate outputs, logs and HTML may contain sensitive information and must remain in a trusted location.
+
 ## Verified native workflow (0.5.0)
 
 From the repository root, this CPU-only example requires the `io` extra:

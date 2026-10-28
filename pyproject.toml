@@ -38,6 +38,7 @@ dev = [
 
 [project.scripts]
 cardianatomy = "cardianatomy.cli:main"
+cardianatomy-scan-to-twin = "cardianatomy.scan_to_twin_cli:main"
 
 [build-system]
 requires = ["setuptools>=77"]
