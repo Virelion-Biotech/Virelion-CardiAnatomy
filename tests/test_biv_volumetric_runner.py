@@ -31,7 +31,72 @@ def make_upstream(root: Path) -> Path:
     return source
 
 
-def make_runner(monkeypatch):
+def write_mesh(path: Path, *, tiny: bool = False) -> None:
+    if tiny:
+        points = np.array(
+            [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+        )
+        tetrahedra = np.array([[0, 1, 2, 3]], dtype=int)
+    else:
+        size = 10
+        coords = np.stack(
+            np.meshgrid(
+                np.arange(size), np.arange(size), np.arange(size), indexing="ij"
+            ),
+            axis=-1,
+        )
+        points = coords.reshape(-1, 3).astype(float)
+
+        def node(i, j, k):
+            return (i * size + j) * size + k
+
+        pattern = (
+            (0, 1, 3, 7),
+            (0, 3, 2, 7),
+            (0, 2, 6, 7),
+            (0, 6, 4, 7),
+            (0, 4, 5, 7),
+            (0, 5, 1, 7),
+        )
+        tetrahedra_list = []
+        for i in range(size - 1):
+            for j in range(size - 1):
+                for k in range(size - 1):
+                    cube = (
+                        node(i, j, k),
+                        node(i + 1, j, k),
+                        node(i, j + 1, k),
+                        node(i + 1, j + 1, k),
+                        node(i, j, k + 1),
+                        node(i + 1, j, k + 1),
+                        node(i, j + 1, k + 1),
+                        node(i + 1, j + 1, k + 1),
+                    )
+                    tetrahedra_list.extend(
+                        tuple(cube[index] for index in tetra) for tetra in pattern
+                    )
+        tetrahedra = np.asarray(tetrahedra_list, dtype=int)
+        cell_points = points[tetrahedra]
+        signed_six_volumes = np.einsum(
+            "ij,ij->i",
+            np.cross(
+                cell_points[:, 1] - cell_points[:, 0],
+                cell_points[:, 2] - cell_points[:, 0],
+            ),
+            cell_points[:, 3] - cell_points[:, 0],
+        )
+        negative = signed_six_volumes < 0
+        saved = tetrahedra[negative, 2].copy()
+        tetrahedra[negative, 2] = tetrahedra[negative, 3]
+        tetrahedra[negative, 3] = saved
+
+    meshio.write(
+        path,
+        meshio.Mesh(points=points, cells=[("tetra", tetrahedra)]),
+    )
+
+
+def make_runner(monkeypatch, *, tiny_mesh: bool = False):
     stages_seen = []
 
     def fake_run(command, *, timeout, cwd):
@@ -50,16 +115,7 @@ def make_runner(monkeypatch):
         case_dir = data_root / subject / f"Instance_{instance}"
         case_dir.mkdir(parents=True, exist_ok=True)
         if stage == "volumetric":
-            mesh_path = case_dir / "mesh_all.vtk"
-            meshio.write(
-                mesh_path,
-                meshio.Mesh(
-                    points=np.array(
-                        [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
-                    ),
-                    cells=[("tetra", np.array([[0, 1, 2, 3]], dtype=int))],
-                ),
-            )
+            write_mesh(case_dir / "mesh_all.vtk", tiny=tiny_mesh)
         elif stage == "uvc-fiber":
             subdir = case_dir / "UVC_i"
             subdir.mkdir()
@@ -157,11 +213,44 @@ def test_volume_mesh_is_inspected_and_qc_recorded(tmp_path, monkeypatch):
     assert result["status"] == "completed_volume_mesh_qc_passed_uvc_fiber_quality_unverified"
     assert result["checks"]["volume_mesh_qc_passed"] is True
     assert result["checks"]["fiber_quality_verified"] is False
-    assert result["verified_volume_mesh"]["tetra_count"] == 1
-    assert result["verified_volume_mesh"]["qc"]["passed"] is True
+    accepted_mesh = result["geometry_qc_passed_volume_mesh"]
+    assert accepted_mesh["tetra_count"] >= 1000
+    assert accepted_mesh["point_count"] >= 500
+    assert accepted_mesh["qc"]["passed"] is True
+    assert accepted_mesh["qc"]["checks"]["minimum_tetra_count"] is True
+    assert result["mesh_acceptance_policy"]["minimum_shape_quality"] == 0.05
     assert result["stages"][-1]["uvc_fiber_named_outputs"]
 
 
+
+
+def test_tiny_mesh_is_rejected_by_minimum_size_guard(tmp_path, monkeypatch):
+    inputs = make_inputs(tmp_path / "inputs")
+    upstream = make_upstream(tmp_path)
+    workspace = tmp_path / "nnunet"
+    workspace.mkdir()
+    carp = tmp_path / "carp"
+    carp.mkdir()
+    stages_seen = make_runner(monkeypatch, tiny_mesh=True)
+
+    with pytest.raises(RuntimeError, match="size and geometry-QC screening"):
+        run_biv_volumetric_pipeline(
+            inputs,
+            upstream_root=upstream,
+            output_root=tmp_path / "output",
+            stages=("segmentation", "contour", "surface", "volumetric"),
+            workspace_dir=workspace,
+            carp_bin_dir=carp,
+            allow_restricted_runtime=True,
+            subject_id="tiny_case",
+        )
+
+    saved = json.loads((tmp_path / "output" / "run-manifest.json").read_text())
+    assert saved["status"] == "failed"
+    assert saved["checks"]["volume_mesh_qc_passed"] is False
+    assert saved["volume_mesh_candidates"][0]["tetra_count"] == 1
+    assert saved["volume_mesh_candidates"][0]["qc"]["checks"]["minimum_tetra_count"] is False
+    assert stages_seen[-1] == "volumetric"
 
 def test_runner_rejects_3d_views_before_creating_output(tmp_path):
     inputs = make_inputs(tmp_path / "inputs")
@@ -289,6 +378,9 @@ def test_cli_runs_adapter_and_prints_manifest(tmp_path, monkeypatch, capsys):
             "--output-root", str(tmp_path / "output"),
             "--nnunet-workspace", str(tmp_path / "workspace"),
             "--subject-id", "case_001",
+            "--minimum-points", "100",
+            "--minimum-tetrahedra", "200",
+            "--minimum-shape-quality", "0.1",
         ]
     )
     output = json.loads(capsys.readouterr().out)
@@ -296,6 +388,9 @@ def test_cli_runs_adapter_and_prints_manifest(tmp_path, monkeypatch, capsys):
     assert output["status"] == "completed_surface_pipeline_only"
     assert captured["views"]["SAX"] == "SAX.nii.gz"
     assert captured["kwargs"]["subject_id"] == "case_001"
+    assert captured["kwargs"]["minimum_points"] == 100
+    assert captured["kwargs"]["minimum_tetrahedra"] == 200
+    assert captured["kwargs"]["minimum_shape_quality"] == 0.1
     assert captured["kwargs"]["stages"] == [
         "segmentation", "contour", "surface"
     ]
