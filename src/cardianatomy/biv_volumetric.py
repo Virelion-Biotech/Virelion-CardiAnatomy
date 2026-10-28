@@ -491,7 +491,8 @@ def run_biv_volumetric_pipeline(
                         raise RuntimeError(
                             "Upstream volumetric command returned success, but no tetrahedral "
                             "mesh passed the configured size and geometry-QC screening. "
-                            "Outputs were preserved; inspect volume_mesh_candidates and the stage log."
+                            "Outputs were preserved; inspect volume_mesh_candidates "
+                            "and the stage log."
                         )
                     manifest["geometry_qc_passed_volume_mesh"] = passed[0]
                     manifest["checks"]["volume_mesh_qc_passed"] = True
