@@ -274,11 +274,13 @@ def run_biv_volumetric_pipeline(
                 "separately installed openCARP binaries"
             )
     preflight = validate_volume_mesh_inputs(views)
-    root = Path(output_root).expanduser().resolve()
+    requested_root = Path(output_root).expanduser()
+    if requested_root.is_symlink():
+        raise ValueError("Output root must not be a symbolic link")
+    root = requested_root.resolve()
     _safe_empty_root(root)
     data_root = root / "data"
     case_dir = data_root / subject_id / f"Instance_{instance}"
-    case_dir.mkdir(parents=True, exist_ok=False)
     excluded_inputs = {f"{subject_id}/Instance_{instance}/{name}" for name in _VIEW_FILES.values()}
     manifest_path = root / "run-manifest.json"
     log_root = root / "logs"
@@ -348,8 +350,8 @@ def run_biv_volumetric_pipeline(
                 subject=subject_id,
                 instance=instance,
                 timeframe=timeframe,
-                workspace_dir=workspace_dir,
-                carp_bin_dir=carp_bin_dir,
+                workspace_dir=workspace_dir if stage == "segmentation" else None,
+                carp_bin_dir=carp_bin_dir if stage in {"volumetric", "uvc-fiber"} else None,
                 python_executable=python_executable,
                 gpu=(gpu and stage == "segmentation"),
                 allow_restricted_runtime=allow_restricted_runtime,
