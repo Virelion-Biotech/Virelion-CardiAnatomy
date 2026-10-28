@@ -233,7 +233,7 @@ def test_tiny_mesh_is_rejected_by_minimum_size_guard(tmp_path, monkeypatch):
     carp.mkdir()
     stages_seen = make_runner(monkeypatch, tiny_mesh=True)
 
-    with pytest.raises(RuntimeError, match="size and geometry-QC screening"):
+    with pytest.raises(RuntimeError, match="outputs and run manifest were preserved"):
         run_biv_volumetric_pipeline(
             inputs,
             upstream_root=upstream,
@@ -250,6 +250,7 @@ def test_tiny_mesh_is_rejected_by_minimum_size_guard(tmp_path, monkeypatch):
     assert saved["checks"]["volume_mesh_qc_passed"] is False
     assert saved["volume_mesh_candidates"][0]["tetra_count"] == 1
     assert saved["volume_mesh_candidates"][0]["qc"]["checks"]["minimum_tetra_count"] is False
+    assert "size and geometry-QC screening" in saved["stages"][-1]["error"]
     assert stages_seen[-1] == "volumetric"
 
 def test_runner_rejects_3d_views_before_creating_output(tmp_path):
