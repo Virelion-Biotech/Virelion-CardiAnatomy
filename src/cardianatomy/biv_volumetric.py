@@ -264,6 +264,15 @@ def run_biv_volumetric_pipeline(
             "upstream_root must be a checkout of cdttk/biv-volumetric-meshing "
             "containing src/run.py"
         )
+    # Validate the user's inputs before asking for optional runtimes/model assets,
+    # so a malformed input is reported directly rather than as a missing dependency.
+    preflight = validate_volume_mesh_inputs(views)
+    for view, record in preflight["inputs"].items():
+        if len(record["shape"]) != 4:
+            raise ValueError(
+                f"{view} must be a 4D cine NIfTI input for the upstream segmentation "
+                "stage; prepare a 4D view with its temporal dimension before running."
+            )
     if "segmentation" in selected:
         if workspace_dir is None or not Path(workspace_dir).expanduser().is_dir():
             raise ValueError("segmentation requires an existing nnUNet workspace_dir")
@@ -274,13 +283,6 @@ def run_biv_volumetric_pipeline(
             raise ValueError(
                 "volumetric/UVC/fiber stages require carp_bin_dir pointing to the "
                 "separately installed openCARP binaries"
-            )
-    preflight = validate_volume_mesh_inputs(views)
-    for view, record in preflight["inputs"].items():
-        if len(record["shape"]) != 4:
-            raise ValueError(
-                f"{view} must be a 4D cine NIfTI input for the upstream segmentation "
-                "stage; prepare a 4D view with its temporal dimension before running."
             )
     requested_root = Path(output_root).expanduser()
     if requested_root.is_symlink():
