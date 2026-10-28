@@ -310,7 +310,8 @@ def run_biv_volumetric_pipeline(
                     "nnU-Net model weights and datasets have separate terms and are not bundled.",
                     "Volume/UVC/fiber stages require a separately installed openCARP runtime.",
                     (
-                        "The openCARP runtime is not bundled and was not license-checked by this program."
+                        "The openCARP runtime is not bundled and was not "
+                        "license-checked by this program."
                     ),
                 ],
             },
