@@ -218,6 +218,14 @@ CardiAnatomy now includes a browser-based mesh viewer with camera rotation, zoom
 
 The surface export preserves coordinates but drops labels, scalar fields, fiber/scar arrays and cell attributes. It does not establish anatomy or clinical validity. See [viewer format limitations](viewer/README.md).
 
+## Run the BiV volumetric meshing pipeline in Google Colab
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Virelion-Biotech/Virelion-CardiAnatomy/blob/main/notebooks/colab_biv_volumetric_end_to_end.ipynb)
+
+The end-to-end notebook lets you select your own four 4D NIfTI inputs and upstream nnU-Net model assets in Google Drive, preflight the inputs, install a compatible Python environment, run the staged segmentation/contour/surface/volume workflow, and preserve logs, manifests, hashes, and QC results in Drive. It does not download or select a patient dataset for you.
+
+The notebook defaults to volumetric meshing and requires an explicit openCARP license review before openCARP-dependent stages. Review the notebook instructions and the upstream terms before execution. A passing geometry QC does not establish anatomical or clinical validity.
+
 ## From cine-CMR scan to patient-specific biventricular model
 
 CardiAnatomy can orchestrate the separately installed, Apache-2.0 UOA-Heart-Mechanics-Research/biv-me pipeline from one cine-CMR DICOM directory. It can produce fitted LV/RV/epicardial moving surface meshes and review HTML, then optionally run upstream volume, strain and wall-thickness utilities. This is a concrete scan-to-biventricular-model stage—not yet a complete, calibrated, whole-heart multiphysics twin.
