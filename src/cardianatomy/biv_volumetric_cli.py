@@ -51,6 +51,24 @@ def _run(argv=None) -> int:
     )
     parser.add_argument("--python-executable", default="python")
     parser.add_argument("--timeout-seconds", type=float, default=14_400)
+    parser.add_argument(
+        "--minimum-points",
+        type=int,
+        default=500,
+        help="Minimum points required before a tetrahedral mesh can pass the artifact guard.",
+    )
+    parser.add_argument(
+        "--minimum-tetrahedra",
+        type=int,
+        default=1000,
+        help="Minimum tetrahedra required before a volume mesh can pass the artifact guard.",
+    )
+    parser.add_argument(
+        "--minimum-shape-quality",
+        type=float,
+        default=0.05,
+        help="Minimum normalized tetrahedral shape metric in [0, 1]; screening only.",
+    )
     args = parser.parse_args(argv)
 
     result = run_biv_volumetric_pipeline(
@@ -72,6 +90,9 @@ def _run(argv=None) -> int:
         gpu=args.gpu,
         python_executable=args.python_executable,
         timeout_seconds=args.timeout_seconds,
+        minimum_points=args.minimum_points,
+        minimum_tetrahedra=args.minimum_tetrahedra,
+        minimum_shape_quality=args.minimum_shape_quality,
     )
     print(json.dumps(result, indent=2, sort_keys=True, allow_nan=False))
     return 0 if result["status"].startswith("completed") else 1
