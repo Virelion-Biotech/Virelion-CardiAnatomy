@@ -38,7 +38,8 @@ dev = [
 
 [project.scripts]
 cardianatomy = "cardianatomy.cli:main"
-cardianatomy-scan-to-twin = "cardianatomy.scan_to_twin_cli:main"\ncardianatomy-volume-mesh-preflight = "cardianatomy.volume_mesh_preflight_cli:main"
+cardianatomy-scan-to-twin = "cardianatomy.scan_to_twin_cli:main"
+cardianatomy-volume-mesh-preflight = "cardianatomy.volume_mesh_preflight_cli:main"
 
 [build-system]
 requires = ["setuptools>=77"]
