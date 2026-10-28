@@ -13,6 +13,7 @@ from .qc import qc_from_inspection
 from .report import render_html_report
 from .service import CardiAnatomyService
 from .serialization import read_json, write_json_atomic, write_text_atomic
+from .surface_export import export_surface_mesh
 
 
 def _load_json(path: str | Path) -> dict:
@@ -50,6 +51,19 @@ def _run(argv=None) -> int:
         type=float,
         default=None,
         help="Optional normalized minimum cell-shape quality in [0, 1]",
+    )
+
+    export_surface_cmd = sub.add_parser(
+        "export-surface",
+        help="Extract a displayable exterior surface from a supported volume mesh",
+    )
+    export_surface_cmd.add_argument("input")
+    export_surface_cmd.add_argument("output")
+    export_surface_cmd.add_argument(
+        "--max-points",
+        type=int,
+        default=2_000_000,
+        help="Maximum number of input points to read",
     )
 
     inspect_dicom = sub.add_parser(
@@ -139,6 +153,11 @@ def _run(argv=None) -> int:
     args = parser.parse_args(argv)
     api = AnatomyAPI(CardiAnatomyService())
 
+    if args.command == "export-surface":
+        _write_json(
+            export_surface_mesh(args.input, args.output, max_points=args.max_points)
+        )
+        return 0
     if args.command == "build":
         bundle = api.service.build(AnatomyRequest.model_validate(_load_json(args.request)))
         write_json_atomic(args.output, bundle.model_dump(mode="json"))
