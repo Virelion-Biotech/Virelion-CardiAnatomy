@@ -216,7 +216,7 @@ def _inspect_volume_meshes(
                 errors.append(check_name)
         qc = qc.model_copy(
             update={
-                "passed": not errors,
+                "passed": bool(qc.passed and not errors),
                 "checks": checks,
                 "errors": errors,
             }
