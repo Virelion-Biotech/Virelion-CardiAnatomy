@@ -55,3 +55,14 @@ notice (CISTIB-RSE, 2020) are preserved in `CardioMesh-LICENSE.txt`.
 The data manifest records exact source URLs and uncompressed SHA-256 checksums.
 No separate data license was found in the reviewed repository. These are
 software format and negative QC fixtures, not clinical reference annotations.
+
+
+## 2026-10-28 cine-CMR integration
+
+The optional CardiAnatomy adapter invokes, but does not vendor, these upstream projects:
+
+- biv-me — https://github.com/UOA-Heart-Mechanics-Research/biv-me — Apache-2.0 software for CMR DICOM preprocessing, view selection, segmentation/contours, biventricular surface fitting and visualization. Cite Dillon et al., Medical Image Analysis 114 (2026), 104252, DOI: 10.1016/j.media.2026.104252.
+- biv-me-dl-models — https://github.com/UOA-Heart-Mechanics-Research/biv-me-dl-models — separately licensed Apache-2.0 model repository. Keep checkpoint/version provenance.
+- biv-volumetric-meshing — https://github.com/cdttk/biv-volumetric-meshing — separate volumetric mesh pipeline; not invoked by the first DICOM-to-surface adapter. Checkpoint and openCARP runtime terms require a separate review before enabling this stage.
+
+CardiAnatomy's addition is adapter/orchestration code; it does not copy upstream algorithms or learned weights. Preserve upstream notices and citations. Software licensing does not automatically cover datasets, model checkpoints or external runtimes.

@@ -11,7 +11,6 @@ import hashlib
 import json
 import os
 import re
-import shutil
 import subprocess
 import time
 from datetime import datetime, timezone
@@ -258,7 +257,9 @@ def _build_bivme_config(
         ("input_pp", "processing"): str((output_root / "processing").resolve()),
         ("input_pp", "states"): str((output_root / "states").resolve()),
         ("output_pp", "output_directory"): str((output_root / "guidepoints").resolve()),
-        ("input_fitting", "gp_directory"): str((output_root / "guidepoints" / "cardianatomy-scan").resolve()),
+        ("input_fitting", "gp_directory"): str(
+            (output_root / "guidepoints" / "cardianatomy-scan").resolve()
+        ),
         ("output_fitting", "output_directory"): str((output_root / "fitted-models").resolve()),
     }
     for (section, key), value in path_values.items():
@@ -335,7 +336,10 @@ def _artifact_inventory(root: Path, fitted_root: Path, metrics_root: Path) -> li
         if base.exists():
             candidates.extend(
                 path for path in base.rglob("*")
-                if path.is_file() and path.suffix.lower() in {".vtk", ".obj", ".html", ".csv", ".txt", ".nii", ".nii.gz", ".json"}
+                if path.is_file()
+                and path.name.lower().endswith(
+                    (".vtk", ".obj", ".html", ".csv", ".txt", ".nii", ".nii.gz", ".json")
+                )
             )
     unique = sorted(set(candidates), key=lambda path: path.as_posix())
     output: list[dict[str, Any]] = []
@@ -369,7 +373,10 @@ def _run_metrics(
     def run_one(name: str, script: str, extra: list[str] | None = None) -> dict[str, Any]:
         path = analysis_root / script
         if not path.is_file():
-            return {"status": "unavailable", "reason": f"Upstream analysis script missing: {script}"}
+            return {
+                "status": "unavailable",
+                "reason": f"Upstream analysis script missing: {script}",
+            }
         argv = [
             python_executable,
             str(path),
@@ -384,7 +391,11 @@ def _run_metrics(
             timeout_seconds=analysis_timeout_seconds,
         )
         return {
-            "status": "completed" if run_result["returncode"] == 0 and not run_result["timed_out"] else "failed",
+            "status": (
+                "completed"
+                if run_result["returncode"] == 0 and not run_result["timed_out"]
+                else "failed"
+            ),
             "returncode": run_result["returncode"],
             "timed_out": run_result["timed_out"],
             "duration_seconds": run_result["duration_seconds"],
@@ -479,17 +490,25 @@ def run_biv_me_scan_to_twin(
         root_resolved = root.resolve(strict=False)
     except OSError as exc:
         raise ValueError("Could not resolve input/output paths") from exc
-    if scan_resolved == root_resolved or scan_resolved in root_resolved.parents or root_resolved in scan_resolved.parents:
+    if (
+        scan_resolved == root_resolved
+        or scan_resolved in root_resolved.parents
+        or root_resolved in scan_resolved.parents
+    ):
         raise ValueError("Input scan directory and output directory must be disjoint")
     if root.exists() and any(root.iterdir()):
         raise ValueError(
-            f"Output directory is not empty: {root}. Choose a new output directory to preserve existing work."
+            f"Output directory is not empty: {root}. "
+            "Choose a new output directory to preserve existing work."
         )
     if review_mode not in {"manual", "adaptive", "automatic"}:
         raise ValueError("review_mode must be manual, adaptive, or automatic")
     if isinstance(workers, bool) or not isinstance(workers, int) or not 1 <= workers <= 64:
         raise ValueError("workers must be an integer in [1, 64]")
-    for name, value in (("timeout_seconds", timeout_seconds), ("analysis_timeout_seconds", analysis_timeout_seconds)):
+    for name, value in (
+        ("timeout_seconds", timeout_seconds),
+        ("analysis_timeout_seconds", analysis_timeout_seconds),
+    ):
         if isinstance(value, bool) or not isinstance(value, int) or value < 1:
             raise ValueError(f"{name} must be a positive integer")
 
@@ -499,7 +518,7 @@ def run_biv_me_scan_to_twin(
     if not _SAFE_CASE_ID.fullmatch(case_id):
         raise ValueError(
             "case_id must be a short pseudonymous identifier matching letters/numbers, dot, "
-            "underscore or hyphen; do not use a patient name, MRN, date of birth or accession number."
+            "underscore or hyphen; use a neutral pseudonymous identifier only."
         )
 
     bime_root = Path(biv_me_root).expanduser().resolve()
@@ -545,7 +564,10 @@ def run_biv_me_scan_to_twin(
             "directory symlinks are permitted, or run this workflow in Linux/WSL."
         ) from exc
 
-    for folder in ("config", "processing", "states", "guidepoints", "fitted-models", "metrics", "logs"):
+    for folder in (
+        "config", "processing", "states", "guidepoints",
+        "fitted-models", "metrics", "logs",
+    ):
         (root / folder).mkdir(parents=True, exist_ok=True)
     config_path = root / "config" / "bivme-generated.toml"
     _build_bivme_config(
@@ -610,7 +632,11 @@ def run_biv_me_scan_to_twin(
     artifacts = _artifact_inventory(root, fitted_root, root / "metrics")
     analysis_status = metric_results.get("status", "not_requested")
     if core_success:
-        workflow_status = "completed" if analysis_status in {"completed", "not_requested"} else "completed_with_analysis_warnings"
+        workflow_status = (
+            "completed"
+            if analysis_status in {"completed", "not_requested"}
+            else "completed_with_analysis_warnings"
+        )
     else:
         workflow_status = "failed_or_incomplete"
 
@@ -648,31 +674,42 @@ def run_biv_me_scan_to_twin(
             "delivered": [
                 "patient-specific moving biventricular surface meshes from cine-CMR DICOM",
                 "upstream fit/contour visualizations for review",
-                "model-derived LV/RV volumes and mass, strain, and wall-thickness outputs when their analyses succeed",
+                "model-derived LV/RV volumes and mass, strain, and wall-thickness "
+                "outputs when their analyses succeed",
                 "hashed manifest of generated research artifacts",
             ],
             "not_established": [
                 "complete four-chamber (atria plus ventricles) simulation-ready volume mesh",
-                "patient-specific fibre/sheet fields or LGE-derived scar mapping in the downstream solver mesh",
-                "personalized electrophysiology with calibrated lead fields, Purkinje system and ECG fit",
+                "patient-specific fibre/sheet fields or LGE-derived scar mapping "
+                "in the downstream solver mesh",
+                "personalized electrophysiology with calibrated lead fields, "
+                "Purkinje system and ECG fit",
                 "calibrated three-dimensional active mechanics or patient-specific CFD/FSI",
                 "cross-domain calibrated whole-heart digital twin",
                 "clinical validation, diagnostic accuracy or treatment-planning suitability",
             ],
             "next_required_stages": [
                 "review the fitted contours and all available model/image overlays",
-                "create or import a simulation-grade labelled volumetric mesh with reviewed cavity faces",
+                "create or import a simulation-grade labelled volumetric mesh "
+                "with reviewed cavity faces",
                 "derive/validate fibre fields and scar mapping where corresponding imaging exists",
-                "bind patient ECG/electrode, pressure, flow, strain and volume observations to explicit solver inputs",
-                "calibrate and independently validate electrical, mechanical and circulation models with held-out measurements",
+                "bind patient ECG/electrode, pressure, flow, strain and volume "
+                "observations to explicit solver inputs",
+                "calibrate and independently validate electrical, mechanical "
+                "and circulation models with held-out measurements",
             ],
         },
         "privacy": {
             "source_directory_path_stored": False,
             "patient_identifiers_stored": False,
             "raw_pixels_copied_to_output": False,
-            "processing_mode": "local subprocess; scan is exposed to upstream through a local directory symlink",
-            "warning": "Treat the output folder, generated HTML, intermediate files and logs as sensitive clinical research data. Do not publish them without review.",
+            "processing_mode": (
+                "local subprocess; scan is exposed to upstream through a local directory symlink"
+            ),
+            "warning": (
+                "Treat output folders, generated HTML, intermediates and logs as private "
+                "research data. Review before sharing."
+            ),
         },
     }
     manifest_path = root / "scan-to-twin-manifest.json"
