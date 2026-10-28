@@ -176,10 +176,14 @@ def test_generated_configuration_points_into_workspace(tmp_path):
         workers=2,
     )
     content = output.read_text(encoding="utf-8")
-    assert str((tmp_path / "staging").resolve()) in content
+    assert scan_to_twin._toml_string(
+        str((tmp_path / "staging").resolve())
+    ) in content
     assert 'correct_mode = "adaptive"' in content
     assert "workers = 2" in content
-    assert str((tmp_path / "result" / "fitted-models").resolve()) in content
+    assert scan_to_twin._toml_string(
+        str((tmp_path / "result" / "fitted-models").resolve())
+    ) in content
 
 
 def _write_mr_dicom(
