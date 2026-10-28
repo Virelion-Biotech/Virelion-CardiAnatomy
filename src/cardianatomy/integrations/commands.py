@@ -159,6 +159,8 @@ def biv_volumetric_command(
     workspace_dir: str | Path | None = None,
     carp_bin_dir: str | Path | None = None,
     python_executable: str = "python",
+    allow_restricted_runtime: bool = False,
+    gpu: bool = False,
 ) -> list[str]:
     require_tool_policy("biv_volumetric")
     allowed = {
@@ -176,6 +178,10 @@ def biv_volumetric_command(
         raise ValueError(
             f"Unknown BiV volumetric components: {sorted(unknown)}"
         )
+    if gpu and not ({"segmentation", "all"} & set(components)):
+        raise ValueError("gpu=True applies only when segmentation or all components are selected")
+    if {"volumetric", "uvc-fiber", "all"} & set(components):
+        require_tool_policy("opencarp", allow_restricted=allow_restricted_runtime)
     command = [
         python_executable,
         str(run_script),
@@ -183,6 +189,8 @@ def biv_volumetric_command(
         str(data_dir),
     ]
     command.extend(allowed[item] for item in components)
+    if gpu:
+        command.append("--gpu")
     if subject:
         command += ["--subject", subject]
     if instance is not None:
