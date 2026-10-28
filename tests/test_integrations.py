@@ -31,11 +31,19 @@ def test_command_builders_do_not_use_shell_strings() -> None:
 
 
 def test_biv_volumetric_command_is_explicit() -> None:
+    with pytest.raises(PermissionError, match="openCARP"):
+        biv_volumetric_command(
+            run_script="run.py",
+            data_dir="/data",
+            components=("surface", "volumetric"),
+            subject="S1",
+        )
     command = biv_volumetric_command(
         run_script="run.py",
         data_dir="/data",
         components=("surface", "volumetric"),
         subject="S1",
+        allow_restricted_runtime=True,
     )
     assert command == [
         "python",
