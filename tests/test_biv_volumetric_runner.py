@@ -18,7 +18,7 @@ def make_inputs(root: Path) -> dict[str, Path]:
     views = {}
     for key in ("SAX", "LAX_2CH", "LAX_3CH", "LAX_4CH"):
         path = root / f"{key}.nii.gz"
-        nib.save(nib.Nifti1Image(np.zeros((6, 7, 8), dtype=np.uint8), np.eye(4)), path)
+        nib.save(nib.Nifti1Image(np.zeros((6, 7, 8, 3), dtype=np.uint8), np.eye(4)), path)
         views[key] = path
     return views
 
@@ -160,6 +160,22 @@ def test_volume_mesh_is_inspected_and_qc_recorded(tmp_path, monkeypatch):
     assert result["verified_volume_mesh"]["qc"]["passed"] is True
     assert result["stages"][-1]["uvc_fiber_named_outputs"]
 
+
+
+def test_runner_rejects_3d_views_before_creating_output(tmp_path):
+    inputs = make_inputs(tmp_path / "inputs")
+    path = inputs["SAX"]
+    nib.save(nib.Nifti1Image(np.zeros((6, 7, 8), dtype=np.uint8), np.eye(4)), path)
+    upstream = make_upstream(tmp_path)
+    output = tmp_path / "output"
+
+    with pytest.raises(ValueError, match="4D cine NIfTI"):
+        run_biv_volumetric_pipeline(
+            inputs,
+            upstream_root=upstream,
+            output_root=output,
+        )
+    assert not output.exists()
 
 def test_runner_refuses_nonempty_output_and_invalid_stage_order(tmp_path, monkeypatch):
     inputs = make_inputs(tmp_path / "inputs")
