@@ -80,7 +80,10 @@ def make_runner(monkeypatch):
 
 def test_surface_runner_preserves_sources_and_writes_auditable_manifest(tmp_path, monkeypatch):
     inputs = make_inputs(tmp_path / "inputs")
-    source_hashes = {key: hashlib.sha256(path.read_bytes()).hexdigest() for key, path in inputs.items()}
+    source_hashes = {
+        key: hashlib.sha256(path.read_bytes()).hexdigest()
+        for key, path in inputs.items()
+    }
     upstream = make_upstream(tmp_path)
     workspace = tmp_path / "nnunet"
     workspace.mkdir()
