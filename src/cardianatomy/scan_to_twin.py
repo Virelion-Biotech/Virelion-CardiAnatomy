@@ -132,9 +132,18 @@ def _model_assets(root: Path) -> dict[str, Any]:
                 f"No non-placeholder weights found in biv-me {component} models. "
                 "Run 'git submodule update --init' and verify Git LFS model files are present."
             )
+        model_files.sort(key=lambda path: path.relative_to(model_root).as_posix())
         result[component] = {
             "file_count": len(model_files),
             "bytes": sum(path.stat().st_size for path in model_files),
+            "files": [
+                {
+                    "path": path.relative_to(model_root).as_posix(),
+                    "bytes": path.stat().st_size,
+                    "sha256": _sha256_file(path),
+                }
+                for path in model_files
+            ],
         }
     return result
 
@@ -349,7 +358,11 @@ def _artifact_inventory(root: Path, fitted_root: Path, metrics_root: Path) -> li
                 "path": path.relative_to(root).as_posix(),
                 "bytes": path.stat().st_size,
                 "sha256": _sha256_file(path),
-                "format": path.suffix.lower().lstrip("."),
+                "format": (
+                    "nii.gz"
+                    if path.name.lower().endswith(".nii.gz")
+                    else path.suffix.lower().lstrip(".")
+                ),
             })
         except OSError:
             continue
