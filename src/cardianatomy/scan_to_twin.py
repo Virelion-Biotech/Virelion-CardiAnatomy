@@ -614,10 +614,22 @@ def run_biv_me_scan_to_twin(
     html_files = sorted(
         path for path in fitted_case.rglob("*.html") if path.is_file()
     ) if fitted_case.exists() else []
+    expected_surface_types = {
+        "LV_ENDOCARDIAL",
+        "RV_ENDOCARDIAL",
+        "EPICARDIAL",
+    }
+    observed_surface_types = {
+        surface_type
+        for path in surface_files
+        for surface_type in expected_surface_types
+        if surface_type in path.name.upper()
+    }
+    missing_surface_types = sorted(expected_surface_types - observed_surface_types)
     core_success = (
         main_result["returncode"] == 0
         and not main_result["timed_out"]
-        and bool(surface_files)
+        and not missing_surface_types
     )
 
     metric_results: dict[str, Any] = {
@@ -679,6 +691,9 @@ def run_biv_me_scan_to_twin(
             "config_path": "config/bivme-generated.toml",
             "config_sha256": _sha256_file(config_path),
             "surface_mesh_count": len(surface_files),
+            "expected_surface_types": sorted(expected_surface_types),
+            "observed_surface_types": sorted(observed_surface_types),
+            "missing_surface_types": missing_surface_types,
             "html_report_count": len(html_files),
         },
         "quantitative_analysis": metric_results,

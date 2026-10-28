@@ -111,8 +111,14 @@ def test_run_adapter_creates_hashed_manifest_and_surface_inventory(tmp_path, mon
             case_id = argv[argv.index("-case") + 1]
             case_root = output_root / "fitted-models" / case_id
             case_root.mkdir(parents=True)
-            (case_root / "LV.vtk").write_text("synthetic surface fixture\n", encoding="utf-8")
-            (case_root / "RV.obj").write_text("synthetic surface fixture\n", encoding="utf-8")
+            for surface_name in (
+                "case_LV_ENDOCARDIAL_000.vtk",
+                "case_RV_ENDOCARDIAL_000.obj",
+                "case_EPICARDIAL_000.vtk",
+            ):
+                (case_root / surface_name).write_text(
+                    "synthetic surface fixture\n", encoding="utf-8"
+                )
             (case_root / "fit.html").write_text("<html>synthetic fixture</html>", encoding="utf-8")
         return {
             "returncode": 0,
@@ -131,7 +137,8 @@ def test_run_adapter_creates_hashed_manifest_and_surface_inventory(tmp_path, mon
     )
 
     assert result["workflow_status"] == "completed"
-    assert result["execution"]["surface_mesh_count"] == 2
+    assert result["execution"]["surface_mesh_count"] == 3
+    assert result["execution"]["missing_surface_types"] == []
     assert result["input"]["patient_identifiers_recorded"] is False
     manifest_text = (output_root / "scan-to-twin-manifest.json").read_text(encoding="utf-8")
     assert str(scan_dir) not in manifest_text

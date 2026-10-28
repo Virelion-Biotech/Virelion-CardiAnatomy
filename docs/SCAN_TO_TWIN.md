@@ -29,7 +29,7 @@ Use a private local directory containing one study and a new output folder:
 
 The output directory must be empty and separate from the input. The source directory is exposed to upstream by a local symlink, avoiding a second full copy. A pseudonymous case ID is generated from an input hash if none is given.
 
-Review mode defaults to adaptive. Use manual for interactive correction of view selection; automatic mode disables interactive correction and needs a separate review. To skip quantitative post-processing, pass --skip-metrics. The command verifies that surface files were produced, writes a hash-pinned manifest, and reports partial analysis failures instead of silently marking every step successful.
+Review mode defaults to adaptive. Use manual for interactive correction of view selection; automatic mode disables interactive correction and needs a separate review. To skip quantitative post-processing, pass --skip-metrics. The command verifies that all three configured surface classes (LV endocardium, RV endocardium and epicardium) were produced, writes a hash-pinned manifest, and reports partial analysis failures instead of silently marking every step successful. This is a structural output check, not a clinical-quality or mesh-topology validation.
 
 ## Outputs and scope
 
