@@ -276,6 +276,12 @@ def run_biv_volumetric_pipeline(
                 "separately installed openCARP binaries"
             )
     preflight = validate_volume_mesh_inputs(views)
+    for view, record in preflight["inputs"].items():
+        if len(record["shape"]) != 4:
+            raise ValueError(
+                f"{view} must be a 4D cine NIfTI input for the upstream segmentation "
+                "stage; prepare a 4D view with its temporal dimension before running."
+            )
     requested_root = Path(output_root).expanduser()
     if requested_root.is_symlink():
         raise ValueError("Output root must not be a symbolic link")
