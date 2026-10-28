@@ -11,7 +11,9 @@ The runner requires four already prepared NIfTI views and copies/re-serializes t
 - logs/: stage stdout/stderr and invoked command;
 - data/<pseudonymous-case>/Instance_<n>/: upstream intermediate and final artifacts.
 
-The output root must be new or empty. Existing non-empty output is rejected; partial results are preserved after a failure rather than silently erased. The original four source files are not modified.
+The output root must be new or empty. Existing non-empty output is rejected; partial results are preserved after a failure rather than silently erased. The original four source files are not modified. Input-staging failures also preserve the preflight manifest and record the failed stage.
+
+**The upstream nnU-Net workspace is not read-only.** The segmentation stage creates temporary datasets under its nnU-Net workspace and can leave them behind if interrupted. Use a private, isolated workspace for each sensitive run and review it after failures; this adapter does not silently erase upstream workspace contents.
 
 If the volume stage is selected, the adapter searches produced mesh files for tetrahedral geometry and runs CardiAnatomy's geometry QC. By default, a candidate must contain at least **500 points**, **1,000 tetrahedra**, and meet a normalized shape-metric threshold of **0.05**. These configurable defaults (**--minimum-points**, **--minimum-tetrahedra**, and **--minimum-shape-quality**) are basic artifact/element-shape guards; they are not a validated acceptance standard for every anatomy or solver.
 
