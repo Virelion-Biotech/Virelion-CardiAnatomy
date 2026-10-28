@@ -80,6 +80,7 @@ flowchart LR
 - **Canonical pipeline presets** for cine-CMR biventricular construction, presegmented EP preparation, and mesh-QC workflows.
 - **License-aware external tool catalog** spanning classical, statistical, whole-heart, and learned reconstruction stacks, including nnU-Net, biv-me, BiV volumetric meshing, MorphiNetV2, Bi-PT, HeartVolMesh, MeshHeart, TetHeart, cardiac-geometriesx, MyoMesh, Meshtool, AugmentA, atrialmtk, and openCARP.
 - **Safe subprocess command builders** for nnU-Net, biv-me, BiV volumetric meshing, MyoMesh, cardiac-geometriesx, fenicsx-ldrb, Meshtool, MorphiNetV2, and Bi-PT without shell interpolation.
+- **Staged BiV volumetric runner** that prepares the upstream-required four-view layout, runs stages separately, preserves logs and partial results, records input/output hashes, gates the openCARP-dependent steps, and performs geometric QC on discovered tetrahedral outputs. The runner is an external adapter, not a replacement for upstream methods.
 - **Self-contained HTML bundle reports**.
 - **Versioned JSON schemas** and schema-drift CI.
 
@@ -122,6 +123,7 @@ cardianatomy validate anatomy-bundle.json --target ep
 cardianatomy report anatomy-bundle.json anatomy-report.html
 cardianatomy register-rigid source-landmarks.json target-landmarks.json
 cardianatomy audit-manifest toolchain.json
+cardianatomy-biv-volumetric-run --help
 cardianatomy cine-phases chamber-volumes.json
 cardianatomy compose-affines affine-chain.json
 cardianatomy invert-affine affine.json
