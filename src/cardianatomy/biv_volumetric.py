@@ -187,7 +187,9 @@ def _inspect_volume_meshes(data_root: Path) -> list[dict[str, Any]]:
             continue
         try:
             inspection = inspect_mesh_file(path)
-        except (ImportError, OSError, RuntimeError, ValueError, TypeError):
+        except Exception:
+            # Some supported mesh extensions can still contain unsupported or
+            # malformed datasets; one bad candidate must not hide other outputs.
             continue
         if not inspection.tetra_count:
             continue
@@ -365,6 +367,11 @@ def run_biv_volumetric_pipeline(
                     encoding="utf-8",
                 )
                 outputs = _changed_artifacts(data_root, before, excluded_inputs)
+                if not outputs:
+                    raise RuntimeError(
+                        f"Upstream {stage} stage returned success but no new or modified "
+                        "non-log artifacts were detected."
+                    )
                 stage_record.update({
                     "status": "completed",
                     "finished_utc": _utc_now(),
