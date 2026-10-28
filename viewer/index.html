@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Local-browser 3D cardiac mesh viewer for Virelion CardiAnatomy.">
+  <title>CardiAnatomy · 3D Mesh Viewer</title>
+  <link rel="stylesheet" href="./style.css">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.179.1/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.179.1/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand-mark">V</div>
+    <div>
+      <p class="eyebrow">VIRELION · CARDIAC DIGITAL TWIN</p>
+      <h1>CardiAnatomy <span>3D Viewer</span></h1>
+    </div>
+    <div class="topbar-spacer"></div>
+    <a href="https://github.com/Virelion-Biotech/Virelion-CardiAnatomy" target="_blank" rel="noreferrer">Repository ↗</a>
+  </header>
+  <main>
+    <section class="intro">
+      <div>
+        <p class="eyebrow">MESH INSPECTION WORKBENCH</p>
+        <h2>See the geometry, not just the report.</h2>
+        <p>Rotate, zoom, inspect, and export a screenshot of a cardiac surface mesh. Start with the illustrative demo or open a mesh produced by your local CardiAnatomy workflow.</p>
+      </div>
+      <div class="privacy-note"><span class="privacy-dot"></span><div><strong>Runs in your browser</strong><small>Selected mesh files are not uploaded to a server.</small></div></div>
+    </section>
+
+    <section class="workspace">
+      <aside class="panel">
+        <div class="panel-heading"><span class="step">01</span><div><h3>Load a model</h3><p>Surface geometry viewer</p></div></div>
+        <label class="dropzone" id="dropzone" for="model-file">
+          <span class="upload-icon">↑</span>
+          <strong>Choose a mesh file</strong>
+          <span>or drag and drop it here</span>
+          <small>.vtk · .stl · .obj · .ply · .glb</small>
+        </label>
+        <input id="model-file" type="file" accept=".vtk,.stl,.obj,.ply,.glb,model/*,application/octet-stream">
+        <button id="load-demo" class="secondary full-width" type="button">Restore illustrative demo</button>
+        <div class="divider"></div>
+        <div class="panel-heading compact"><span class="step">02</span><div><h3>Display</h3><p>Camera and surface options</p></div></div>
+        <button id="reset-camera" class="secondary full-width" type="button">Fit model to view</button>
+        <label class="toggle-row"><span>Wireframe overlay</span><input id="wireframe" type="checkbox"><i></i></label>
+        <label class="toggle-row"><span>Show axes</span><input id="show-axes" type="checkbox" checked><i></i></label>
+        <button id="save-image" class="primary full-width" type="button">Export viewer image (PNG)</button>
+        <div class="divider"></div>
+        <div class="panel-heading compact"><span class="step">03</span><div><h3>Model information</h3><p>Geometry-only inspection</p></div></div>
+        <dl class="stats">
+          <div><dt>File / model</dt><dd id="model-name">Illustrative demo</dd></div>
+          <div><dt>Vertices</dt><dd id="vertex-count">—</dd></div>
+          <div><dt>Triangles</dt><dd id="triangle-count">—</dd></div>
+          <div><dt>Bounds (file units)</dt><dd id="bounds">—</dd></div>
+        </dl>
+        <p class="status" id="status" role="status" aria-live="polite">Preparing demo mesh…</p>
+      </aside>
+
+      <section class="viewport-shell" aria-label="Interactive 3D model">
+        <div class="viewport-toolbar"><span><span class="live-dot"></span> 3D VIEWPORT</span><span>Drag to rotate · Scroll to zoom · Right-drag to pan</span></div>
+        <div id="viewport" class="viewport"></div>
+        <div class="viewport-footer"><span>Geometry remains in file coordinates</span><span>Not for diagnostic use</span></div>
+      </section>
+    </section>
+
+    <section class="notes-grid">
+      <article><span class="note-index">A</span><div><h3>Volume mesh? Extract its exterior first.</h3><p>Three-dimensional solvers often use tetrahedral/hexahedral volume meshes. Convert supported linear cell meshes into a displayable surface with <code>cardianatomy export-surface</code> before opening the resulting VTK file here.</p></div></article>
+      <article><span class="note-index">B</span><div><h3>Interpretation boundaries</h3><p>The built-in model is synthetic illustration only. A rendered mesh or passing geometry check does not prove segmentation accuracy, anatomical correctness, or clinical validity. The viewer does not reconstruct anatomy from DICOM or NIfTI.</p></div></article>
+    </section>
+  </main>
+  <footer>Virelion CardiAnatomy · Research software · Third-party rendering modules are loaded from jsDelivr.</footer>
+</body>
+</html>
