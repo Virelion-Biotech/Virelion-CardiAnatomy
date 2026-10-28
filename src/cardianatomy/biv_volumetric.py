@@ -303,7 +303,9 @@ def run_biv_volumetric_pipeline(
                 "runtime_notes": [
                     "nnU-Net model weights and datasets have separate terms and are not bundled.",
                     "Volume/UVC/fiber stages require a separately installed openCARP runtime.",
-                    "The openCARP runtime is not bundled and was not license-checked by this program.",
+                    (
+                        "The openCARP runtime is not bundled and was not license-checked by this program."
+                    ),
                 ],
             },
             "case": {"subject_id": subject_id, "instance": instance, "timeframe": timeframe},
@@ -327,8 +329,14 @@ def run_biv_volumetric_pipeline(
             "warnings": [
                 "Input axis-code agreement does not establish spatial registration.",
                 "Review contour/surface overlays against source images before using the geometry.",
-                "A passing mesh QC report is geometric evidence, not anatomical or clinical validation.",
-                "Generated files and upstream logs may contain sensitive case information; keep this workspace private.",
+                (
+                    "A passing mesh QC report is geometric evidence, not anatomical " 
+                    "or clinical validation."
+                ),
+                (
+                    "Generated files and upstream logs may contain sensitive case " 
+                    "information; keep this workspace private."
+                ),
             ],
         }
         _write_json_atomic(root / "preflight-manifest.json", preflight)
@@ -413,7 +421,9 @@ def run_biv_volumetric_pipeline(
                     "status": "failed",
                     "finished_utc": _utc_now(),
                     "error": str(exc)[-4000:],
-                    "log_path": log_path.relative_to(root).as_posix() if log_path.exists() else None,
+                    "log_path": (
+                        log_path.relative_to(root).as_posix() if log_path.exists() else None
+                    ),
                 })
                 manifest["status"] = "failed"
                 manifest["failed_stage"] = stage
