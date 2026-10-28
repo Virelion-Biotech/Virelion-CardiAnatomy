@@ -62,3 +62,13 @@ jobs:
       - run: /tmp/anatomy-wheel/bin/cardianatomy summarize-motion examples/motion_payload.json
       - run: /tmp/anatomy-wheel/bin/cardianatomy audit-manifest examples/toolchain_manifest.json
       - run: /tmp/anatomy-wheel/bin/python -c "from importlib.resources import files; assert files('cardianatomy').joinpath('schemas/anatomy-bundle-2.0.0.schema.json').is_file()"
+
+  viewer-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node --check viewer/app.mjs
+      - run: python -c "from pathlib import Path; assert Path('viewer/index.html').is_file(); assert Path('viewer/style.css').is_file(); assert Path('viewer/app.mjs').is_file()"

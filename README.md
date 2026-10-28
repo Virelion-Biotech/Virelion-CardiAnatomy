@@ -202,6 +202,20 @@ CardiAnatomy is research infrastructure. A valid schema, clean mesh, successful 
 
 Virelion CardiAnatomy is licensed under AGPL-3.0-or-later. Third-party tools, model weights, datasets, and optional runtimes retain their own licenses and terms.
 
+## Interactive 3D mesh viewer
+
+CardiAnatomy now includes a browser-based mesh viewer with camera rotation, zoom/pan, fit-to-view, wireframe, coordinate axes, mesh counts/bounds, and PNG screenshot export. It opens legacy ASCII VTK POLYDATA, STL, OBJ, PLY, and GLB surface files. The first model is a synthetic teaching illustration; it is not patient-derived.
+
+- Viewer source and local instructions: [viewer/](viewer/).
+- If the GitHub Pages deployment workflow is enabled after this branch is merged, the expected site is [CardiAnatomy 3D Viewer](https://virelion-biotech.github.io/Virelion-CardiAnatomy/).
+- The viewer parses selected files locally in your browser. It does not upload patient meshes to a backend.
+- Volume meshes are not surface displays. Install the IO extra and extract the exterior of a supported linear volume mesh before opening it:
+
+      python -m pip install -e '.[io]'
+      cardianatomy export-surface path/to/volume_mesh.vtu outputs/volume_surface.vtk
+
+The surface export preserves coordinates but drops labels, scalar fields, fiber/scar arrays and cell attributes. It does not establish anatomy or clinical validity. See [viewer format limitations](viewer/README.md).
+
 ## Verified native workflow (0.5.0)
 
 From the repository root, this CPU-only example requires the `io` extra:
