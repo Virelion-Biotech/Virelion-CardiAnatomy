@@ -1,0 +1,7 @@
+# Exact Gitleaks false-positive fingerprints: these are SHA-256 source-file hashes in frozen validation provenance, not credentials.
+653d8ca93b29b9e59320793fc12c4568740c6e8d:validation/colab_numerical_2026_10_15/corrected_reproduction.json:generic-api-key:196
+653d8ca93b29b9e59320793fc12c4568740c6e8d:validation/colab_numerical_2026_10_15/baseline_reproduction.json:generic-api-key:195
+653d8ca93b29b9e59320793fc12c4568740c6e8d:validation/colab_numerical_2026_10_15/original/results/Virelion-CardiAnatomy-run_cpu_validation.json:generic-api-key:195
+653d8ca93b29b9e59320793fc12c4568740c6e8d:validation/colab_numerical_2026_10_15/original/source_snapshots.json:generic-api-key:43
+653d8ca93b29b9e59320793fc12c4568740c6e8d:validation/colab_numerical_2026_10_15/original/source_snapshots.json:generic-api-key:78
+4e7099ba44a2808d8c477855c7d0f5741a1e0838:validation/cpu/results.json:generic-api-key:195
